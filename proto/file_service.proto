@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package file_service;
+
+service FileService {
+  // Unary RPC
+  rpc UploadFile (FileUploadRequest) returns (FileUploadResponse);
+
+  // Client streaming
+  rpc UploadLargeFile (stream FileChunk) returns (FileUploadResponse);
+
+  //Server streaming
+  rpc DownloadLargeFile (FileDownloadRequest) returns (stream FileChunk);
+}
+
+message FileUploadRequest {
+  string filename = 1;
+  bytes data = 2; // file data
+}
+
+message FileUploadResponse {
+  string message = 1;
+}
+
+message FileDownloadRequest {
+  string filename = 1;
+}
+
+message FileChunk {
+  string filename = 1;
+  bytes data = 2; // Chunk data
+  int32 chunk_number = 3;
+}

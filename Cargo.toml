@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "back-end"
+, "quic-file-service", "support-macro"]
+resolver = "2"
