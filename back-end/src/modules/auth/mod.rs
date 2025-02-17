@@ -1,8 +1,10 @@
 
 
+use axum::Json;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
-use crate::db_pool::DbPool;
+use crate::{db_pool::DbPool, AppState};
+use super::user::model::User;
 
 
 pub const REFRESH_EXPIRES: i64=24*60*60;
@@ -54,4 +56,19 @@ pub fn decode_token(token:String,key:&str)->Result<TokenData<Claims>,String>{
 }
 pub async fn verify_token(token_data:&TokenData<Claims>,pool: &DbPool)->Result<String,String>{
     todo!()
+}
+
+pub async fn gen_token(mut user: &User, state: &AppState)->Result<Json<Token>,String>{
+    let mut claim= Claims::new(user.ID.to_string());
+    let token= encode_token(&state.jwt_secret, claim.clone()).unwrap();
+
+    claim.exp +=REFRESH_EXPIRES;
+    let refresh_token= encode_token(&state.jwt_secret, claim).unwrap();
+
+    Ok(Json(
+        Token { user: user.Username.to_string(), 
+                access_token: token,
+                refresh_token: refresh_token 
+            }
+    ))
 }
