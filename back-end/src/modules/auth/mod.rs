@@ -1,10 +1,15 @@
-
+pub mod model;
 
 use axum::Json;
+use chrono::DateTime;
+use diesel::{query_dsl::methods::{FilterDsl, FindDsl, SelectDsl}, ExpressionMethods, IntoSql, OptionalExtension, RunQueryDsl, SelectableHelper};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
-use crate::{db_pool::DbPool, AppState};
+use crate::{db_pool::{get_conn, DbPool},schema::{_refresh_tokens::dsl::*, _users::dsl::*},AppState};
 use super::user::model::User;
+use super::auth::model::RefreshToken;
+use crate::schema::_refresh_tokens;
+use crate::schema::_users;
 
 
 pub const REFRESH_EXPIRES: i64=24*60*60;
@@ -54,21 +59,55 @@ pub fn decode_token(token:String,key:&str)->Result<TokenData<Claims>,String>{
         Err(e) => Err(format!("Error decode token: {}",e)),
     }
 }
-pub async fn verify_token(token_data:&TokenData<Claims>,pool: &DbPool)->Result<String,String>{
+pub async fn verify_access_token(token: String,pool: &DbPool)->Result<String,String>{
+    //check access token
     todo!()
 }
 
-pub async fn gen_token(mut user: &User, state: &AppState)->Result<Json<Token>,String>{
-    let mut claim= Claims::new(user.ID.to_string());
-    let token= encode_token(&state.jwt_secret, claim.clone()).unwrap();
+pub async fn verify_refresh_token(refresh_token:String, state: &AppState )->Result<Token,String>{
+    //get UUID by refresh token in db
+    let mut conn=get_conn(&state.pool);
+    let orefresh_token=_refresh_tokens::table
+                                    .filter(_refresh_tokens::RefreshToken.eq(&refresh_token))
+                                    .first::<RefreshToken>(&mut conn)
+                                    .optional().unwrap();
+                                
+    match orefresh_token {
+        Some(token) => {
+            if token.Expiry<chrono::Utc::now().naive_utc(){
+               let user= _users.find(token.UserID)
+                                            .select(User::as_select())
+                                            .first::<User>(&mut conn)
+                                            .optional().unwrap();
+                match user {
+                    Some(user) => {
+                        let token=gen_token(&user, state).await.unwrap();
+                        Ok(token)
+                    },
+                    None => Err(format!("Not found user by id:{}",token.UserID)),
+                }
+            }else {
+                Err(format!("Refresh token is expired!"))
+            }
+        },
+        None => {
+            Err(format!("Not found refresh token: {}",refresh_token))
+        },
+    }
+}
 
+pub async fn gen_token(user: &User, state: &AppState)->Result<Token,String>{
+    let mut claim= Claims::new(user.ID.to_string());
+    let access_token= encode_token(&state.jwt_secret, claim.clone()).unwrap();
+
+    //TODO
+    let id=uuid::Uuid::new_v4();
     claim.exp +=REFRESH_EXPIRES;
     let refresh_token= encode_token(&state.jwt_secret, claim).unwrap();
 
-    Ok(Json(
-        Token { user: user.Username.to_string(), 
-                access_token: token,
+    //TODO Save to Db
+    Ok(Token { user: user.Username.to_string(), 
+                access_token: access_token,
                 refresh_token: refresh_token 
-            }
-    ))
+    })
 }

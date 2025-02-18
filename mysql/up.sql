@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS _Employees (
   PhoneNumber VARCHAR(50),
   CreatedBy INT NOT NULL,
   UpdatedBy INT NOT NULL,
-  CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS _Users (
@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS _Users (
     IsActive BOOLEAN DEFAULT TRUE, 
     CreatedBy INT NOT NULL,
     UpdatedBy INT NOT NULL,
-    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS _User_Roles(
@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS _Groups (
     Description TEXT,                              
     CreatedBy INT NOT NULL,
     UpdatedBy INT NOT NULL,
-    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS _Group_Roles (
     ID INT PRIMARY KEY AUTO_INCREMENT,
@@ -60,8 +60,8 @@ CREATE TABLE IF NOT EXISTS _Roles (
     Description TEXT,
     CreatedBy INT NOT NULL,
     UpdatedBy INT NOT NULL,
-    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS _Role_Permissions (
@@ -90,21 +90,22 @@ CREATE TABLE IF NOT EXISTS _Access_Tokens (
     ID INT PRIMARY KEY AUTO_INCREMENT,        
     UserID INT NOT NULL,                           
     AccessToken TEXT NOT NULL,                     
-    Expiry TIMESTAMP NOT NULL,                     
+    Expiry DATETIME NOT NULL,                     
     IPAddress VARCHAR(255) DEFAULT NULL,           
     UserAgent TEXT DEFAULT NULL,                   
-    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ,
+    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ,
     Revoked BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS _Refresh_Tokens (
     ID INT PRIMARY KEY AUTO_INCREMENT,         
-    UserID INT NOT NULL,                            
+    UserID INT NOT NULL, 
+    UUID VARCHAR(255) NOT NULL,                       
     RefreshToken TEXT NOT NULL,                     
-    Expiry TIMESTAMP NOT NULL,                      
+    Expiry DATETIME NOT NULL,                      
     IPAddress VARCHAR(255) DEFAULT NULL,            
     UserAgent TEXT DEFAULT NULL,                    
-    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     Revoked BOOLEAN DEFAULT FALSE                 
 );
 

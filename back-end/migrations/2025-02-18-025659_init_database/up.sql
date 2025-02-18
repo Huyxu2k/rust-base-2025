@@ -99,7 +99,8 @@ CREATE TABLE IF NOT EXISTS _Access_Tokens (
 
 CREATE TABLE IF NOT EXISTS _Refresh_Tokens (
     ID INT PRIMARY KEY AUTO_INCREMENT,         
-    UserID INT NOT NULL,                            
+    UserID INT NOT NULL, 
+    UUID VARCHAR(255) NOT NULL,                       
     RefreshToken TEXT NOT NULL,                     
     Expiry DATETIME NOT NULL,                      
     IPAddress VARCHAR(255) DEFAULT NULL,            
