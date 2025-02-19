@@ -1,15 +1,16 @@
 pub mod model;
+pub mod service;
 
 use axum::Json;
-use chrono::DateTime;
-use diesel::{query_dsl::methods::{FilterDsl, FindDsl, SelectDsl}, ExpressionMethods, IntoSql, OptionalExtension, RunQueryDsl, SelectableHelper};
+use chrono::{DateTime, NaiveDateTime};
+use diesel::{expression::is_aggregate::No, query_dsl::methods::{FilterDsl, FindDsl, SelectDsl}, ExpressionMethods, IntoSql, OptionalExtension, RunQueryDsl, SelectableHelper};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use model::{NewAccessToken, NewRefreshToken};
 use serde::{Deserialize, Serialize};
-use crate::{db_pool::{get_conn, DbPool},schema::{_refresh_tokens::dsl::*, _users::dsl::*},AppState};
+use crate::{db_pool::{get_conn, DbPool},schema::{_access_tokens::dsl::*, _refresh_tokens::dsl::*, _users::dsl::*},AppState};
 use super::user::model::User;
 use super::auth::model::RefreshToken;
-use crate::schema::_refresh_tokens;
-use crate::schema::_users;
+use crate::schema::{_refresh_tokens,_access_tokens};
 
 
 pub const REFRESH_EXPIRES: i64=24*60*60;
@@ -59,55 +60,74 @@ pub fn decode_token(token:String,key:&str)->Result<TokenData<Claims>,String>{
         Err(e) => Err(format!("Error decode token: {}",e)),
     }
 }
-pub async fn verify_access_token(token: String,pool: &DbPool)->Result<String,String>{
-    //check access token
-    todo!()
+pub async fn verify_access_token(token: String,state: &AppState)->Result<bool,String>{
+    let decode_claim=decode_token(token,&state.jwt_secret).unwrap();
+                                
+    if decode_claim.claims.exp<=chrono::Utc::now().timestamp(){
+        Ok(true)
+     }else {
+         Err(format!("Access token is expired!"))
+     }
 }
 
-pub async fn verify_refresh_token(refresh_token:String, state: &AppState )->Result<Token,String>{
-    //get UUID by refresh token in db
-    let mut conn=get_conn(&state.pool);
-    let orefresh_token=_refresh_tokens::table
-                                    .filter(_refresh_tokens::RefreshToken.eq(&refresh_token))
-                                    .first::<RefreshToken>(&mut conn)
-                                    .optional().unwrap();
+pub async fn verify_refresh_token(refresh_token:String, state: &AppState )->Result<bool,String>{
+    let decode_claim=decode_token(refresh_token,&state.secret).unwrap();
                                 
-    match orefresh_token {
-        Some(token) => {
-            if token.Expiry<chrono::Utc::now().naive_utc(){
-               let user= _users.find(token.UserID)
-                                            .select(User::as_select())
-                                            .first::<User>(&mut conn)
-                                            .optional().unwrap();
-                match user {
-                    Some(user) => {
-                        let token=gen_token(&user, state).await.unwrap();
-                        Ok(token)
-                    },
-                    None => Err(format!("Not found user by id:{}",token.UserID)),
-                }
-            }else {
-                Err(format!("Refresh token is expired!"))
-            }
-        },
-        None => {
-            Err(format!("Not found refresh token: {}",refresh_token))
-        },
-    }
+    if decode_claim.claims.exp<=chrono::Utc::now().timestamp(){
+        Ok(true)
+     }else {
+         Err(format!("Refresh token is expired!"))
+     }
 }
 
 pub async fn gen_token(user: &User, state: &AppState)->Result<Token,String>{
-    let mut claim= Claims::new(user.ID.to_string());
-    let access_token= encode_token(&state.jwt_secret, claim.clone()).unwrap();
+    let mut conn=get_conn(&state.pool);
 
-    //TODO
-    let id=uuid::Uuid::new_v4();
-    claim.exp +=REFRESH_EXPIRES;
-    let refresh_token= encode_token(&state.jwt_secret, claim).unwrap();
+    let time_origin=chrono::Utc::now();
+    let now= time_origin.clone().timestamp();
+    let exp= now+ EXPIRES;
+    let mut claim= Claims{
+        sub: user.ID.to_string(),
+        exp,
+        iat: now,
+    };
+    let access_token_string= encode_token(&state.jwt_secret, claim.clone()).unwrap();
 
-    //TODO Save to Db
+    claim.exp= now+ REFRESH_EXPIRES;
+    let refresh_token_string=encode_token(&state.secret, claim).unwrap();
+
+    let refresh_token=NewRefreshToken{
+        UserID: user.ID.clone(),
+        RefreshToken: refresh_token_string.clone(),
+        Expiry: time_origin.clone().naive_utc(),
+        IPAddress: None,
+        UserAgent: None,
+        CreatedAt: Some(time_origin.naive_utc()),
+        Revoked: Some(false)
+    };
+
+    
+    let access_token=NewAccessToken{
+        UserID: user.ID.clone(),
+        AccessToken: access_token_string.clone(),
+        Expiry: time_origin.clone().naive_utc(),
+        IPAddress: None,
+        UserAgent: None,
+        CreatedAt: Some(time_origin.naive_utc()),
+        Revoked: Some(false)
+    };
+    
+    //Save refresh token 
+    diesel::insert_into(_refresh_tokens)
+            .values(refresh_token)
+            .execute(&mut conn).unwrap();
+    //access token
+    diesel::insert_into(_access_tokens)
+            .values(access_token)
+            .execute(&mut conn).unwrap();
+
     Ok(Token { user: user.Username.to_string(), 
-                access_token: access_token,
-                refresh_token: refresh_token 
+                access_token: access_token_string,
+                refresh_token: refresh_token_string 
     })
 }

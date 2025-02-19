@@ -20,7 +20,8 @@ use std::{net::SocketAddr, sync::Arc};
 #[derive(Clone)]
 pub struct AppState{
     pub pool: Arc<DbPool>,
-    pub jwt_secret: String
+    pub jwt_secret: String,
+    pub secret: String
 }
 
 impl AppState {
@@ -29,7 +30,8 @@ impl AppState {
 
         AppState { 
             pool, 
-            jwt_secret: "test".to_string() 
+            jwt_secret: "test".to_string(),
+            secret:"hello".to_string()
         }
     }
 }

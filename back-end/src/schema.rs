@@ -93,8 +93,6 @@ diesel::table! {
     _refresh_tokens (ID) {
         ID -> Integer,
         UserID -> Integer,
-        #[max_length = 255]
-        UUID -> Varchar,
         RefreshToken -> Text,
         Expiry -> Datetime,
         #[max_length = 255]
