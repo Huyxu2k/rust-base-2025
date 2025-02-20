@@ -1,16 +1,14 @@
 pub mod model;
-pub mod service;
+pub mod repository
+;
+pub mod api;
 
-use axum::Json;
-use chrono::{DateTime, NaiveDateTime};
-use diesel::{expression::is_aggregate::No, query_dsl::methods::{FilterDsl, FindDsl, SelectDsl}, ExpressionMethods, IntoSql, OptionalExtension, RunQueryDsl, SelectableHelper};
+use diesel::RunQueryDsl;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use model::{NewAccessToken, NewRefreshToken};
 use serde::{Deserialize, Serialize};
-use crate::{db_pool::{get_conn, DbPool},schema::{_access_tokens::dsl::*, _refresh_tokens::dsl::*, _users::dsl::*},AppState};
+use crate::{db_pool::get_conn,schema::{_access_tokens::dsl::*, _refresh_tokens::dsl::*},AppState};
 use super::user::model::User;
-use super::auth::model::RefreshToken;
-use crate::schema::{_refresh_tokens,_access_tokens};
 
 
 pub const REFRESH_EXPIRES: i64=24*60*60;
@@ -78,6 +76,10 @@ pub async fn verify_refresh_token(refresh_token:String, state: &AppState )->Resu
      }else {
          Err(format!("Refresh token is expired!"))
      }
+}
+
+pub async fn revoked_token(access_token: String,refresh_token: String ){
+    todo!()
 }
 
 pub async fn gen_token(user: &User, state: &AppState)->Result<Token,String>{
