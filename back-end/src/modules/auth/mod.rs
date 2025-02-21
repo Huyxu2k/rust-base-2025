@@ -3,12 +3,13 @@ pub mod repository
 ;
 pub mod api;
 
-use diesel::RunQueryDsl;
+use diesel::prelude::*;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
-use model::{NewAccessToken, NewRefreshToken};
+use model::{AccessToken, NewAccessToken, NewRefreshToken,RefreshToken};
 use serde::{Deserialize, Serialize};
-use crate::{db_pool::get_conn,schema::{_access_tokens::dsl::*, _refresh_tokens::dsl::*},AppState};
+use crate::{db_pool::{get_conn, DbPool},schema::{_access_tokens::dsl::*, _refresh_tokens::dsl::*},AppState};
 use super::user::model::User;
+use crate::schema::{_access_tokens,_refresh_tokens};
 
 
 pub const REFRESH_EXPIRES: i64=24*60*60;
@@ -58,29 +59,106 @@ pub fn decode_token(token:String,key:&str)->Result<TokenData<Claims>,String>{
         Err(e) => Err(format!("Error decode token: {}",e)),
     }
 }
-pub async fn verify_access_token(token: String,state: &AppState)->Result<bool,String>{
-    let decode_claim=decode_token(token,&state.jwt_secret).unwrap();
+pub async fn verify_token(token:String,token_type:TypeToken,state: &AppState )->Result<bool,String>{
+    match token_type {
+        TypeToken::Access => {
+            let decode_claim=decode_token(token,&state.jwt_secret).unwrap();       
+            if decode_claim.claims.exp<=chrono::Utc::now().timestamp(){
+                //TODO
+                Ok(true)
+            }else {
+                Err(format!("Access token is expired!"))
+            }
+        },
+        TypeToken::Refresh => {
+            //TODO check refresh token ->revoked =false
+            let decode_claim=decode_token(token,&state.secret).unwrap();
                                 
-    if decode_claim.claims.exp<=chrono::Utc::now().timestamp(){
-        Ok(true)
-     }else {
-         Err(format!("Access token is expired!"))
-     }
+            if decode_claim.claims.exp<=chrono::Utc::now().timestamp(){
+                //TODO
+                Ok(true)
+            }else {
+                Err(format!("Refresh token is expired!"))
+            }
+        },
+    }
 }
 
-pub async fn verify_refresh_token(refresh_token:String, state: &AppState )->Result<bool,String>{
-    let decode_claim=decode_token(refresh_token,&state.secret).unwrap();
-                                
-    if decode_claim.claims.exp<=chrono::Utc::now().timestamp(){
-        Ok(true)
-     }else {
-         Err(format!("Refresh token is expired!"))
-     }
+pub enum TypeToken {
+    Access,
+    Refresh
 }
 
-pub async fn revoked_token(access_token: String,refresh_token: String ){
-    todo!()
+pub async fn revoked_token(token: String, token_type: TypeToken, pool: &DbPool)->Result<i32,String>{
+    let mut conn=get_conn(&pool);
+    match token_type {
+        TypeToken::Access => {
+            let token=_access_tokens::table
+            .filter(_access_tokens::AccessToken.eq(&token))
+            .first::<AccessToken>(&mut conn)
+            .optional().unwrap();
+            
+            match token {
+                Some(access_token) => {
+                    diesel::update(_access_tokens.find(access_token.ID))
+                            .set(_access_tokens::Revoked.eq(true))
+                            .execute(&mut conn);
+                    Ok(access_token.UserID)
+                },
+                None => Err(format!("Can't revoked access token")),
+            }
+        },
+        TypeToken::Refresh => {
+            let token=_refresh_tokens::table
+            .filter(_refresh_tokens::RefreshToken.eq(&token))
+            .first::<RefreshToken>(&mut conn)
+            .optional().unwrap();
+
+            match token {
+                Some(refresh_token) =>{
+                    diesel::update(_refresh_tokens.find(refresh_token.ID))
+                            .set(_refresh_tokens::Revoked.eq(true))
+                            .execute(&mut conn);
+                    Ok(refresh_token.UserID)
+                },
+                None => Err(format!("Can't revoked refresh token")),
+            }
+        },
+    }
 }
+
+pub async fn check_revoked(token: String, token_type: TypeToken, pool: &DbPool)->Result<bool,String>{
+    let mut conn=get_conn(&pool);
+    match token_type {
+        TypeToken::Access => {
+            let token=_access_tokens::table
+            .filter(_access_tokens::AccessToken.eq(&token))
+            .first::<AccessToken>(&mut conn)
+            .optional().unwrap();
+            
+            match token {
+                Some(access_token) => {
+                    Ok(access_token.Revoked.unwrap_or(true))
+                },
+                None => Err(format!("Can't find access token")),
+            }
+        },
+        TypeToken::Refresh => {
+            let token=_refresh_tokens::table
+            .filter(_refresh_tokens::RefreshToken.eq(&token))
+            .first::<RefreshToken>(&mut conn)
+            .optional().unwrap();
+
+            match token {
+                Some(refresh_token) => {
+                    Ok(refresh_token.Revoked.unwrap_or(true))
+                },
+                None => Err(format!("Can't find refresh token")),
+            }
+        },
+    }
+}
+
 
 pub async fn gen_token(user: &User, state: &AppState)->Result<Token,String>{
     let mut conn=get_conn(&state.pool);
