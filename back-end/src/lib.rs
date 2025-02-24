@@ -1,12 +1,12 @@
 
-mod error;
-mod middleware;
-mod utils;
-mod cache;
-mod db_pool;
-mod config;
-mod routes;
-mod modules;
+pub mod error;
+pub mod middleware;
+pub mod utils;
+pub mod cache;
+pub mod db_pool;
+pub mod config;
+pub mod routes;
+pub mod modules;
 
 pub mod schema;
 

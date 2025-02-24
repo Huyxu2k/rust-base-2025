@@ -1,6 +1,5 @@
 pub mod model;
-pub mod repository
-;
+pub mod repository;
 pub mod api;
 
 use diesel::prelude::*;
@@ -59,7 +58,7 @@ pub fn decode_token(token:String,key:&str)->Result<TokenData<Claims>,String>{
         Err(e) => Err(format!("Error decode token: {}",e)),
     }
 }
-pub async fn verify_token(token:String,token_type:TypeToken,state: &AppState )->Result<bool,String>{
+pub fn verify_token(token:String,token_type:TypeToken,state: &AppState )->Result<bool,String>{
     match token_type {
         TypeToken::Access => {
             let decode_claim=decode_token(token,&state.jwt_secret).unwrap();       

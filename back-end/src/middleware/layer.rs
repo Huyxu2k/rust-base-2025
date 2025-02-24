@@ -4,6 +4,7 @@ use axum::{
 
 use crate::AppState;
 use super::{THandler, AUTHORIZATION_HEADER, BEARER};
+use crate::modules::auth::{verify_token,TypeToken};
 
 pub async fn health_check()->Response{
     let response = Response::builder()
@@ -28,11 +29,10 @@ impl THandler for AccessTokenLayer {
 
         if let Some(auth_header)=headers.get(AUTHORIZATION_HEADER){
            let header = auth_header.to_str().unwrap_or("");
-           if !header.starts_with(BEARER){
-               return Err(response);
+           if header.starts_with(BEARER) && verify_token(header.to_string(),TypeToken::Access,&state).unwrap(){
+             return Ok(req);
            }
-           //TODO
-           Ok(req)
+           Err(response)
         }else {
             Err(response)
         }
