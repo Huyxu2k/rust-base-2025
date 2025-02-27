@@ -1,12 +1,12 @@
-use crate::{db_pool::get_conn, AppState};
+use crate::{db_pool::{get_conn, DbPool}, AppState};
 
 use super::Token;
-use crate::modules::user::repository::get_user_by_id;
+use crate::modules::user::repository::get_user_by_username_or_email;
 use super::gen_token;
 
 
-pub async fn create_token(user_id:i32,state: &AppState)->Result<Token,String>{
-    let user= get_user_by_id(user_id,&state.pool).await.unwrap();
+pub async fn create_token(name: String, password:String,state: &AppState)->Result<Token,String>{
+    let user= get_user_by_username_or_email(name,&state.pool).await.unwrap();
     let token=gen_token(&user,&state).await.unwrap();
     Ok(token)
 }

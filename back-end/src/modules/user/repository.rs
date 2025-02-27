@@ -1,4 +1,4 @@
-use diesel::{query_dsl::methods::{FindDsl, OrderDsl, SelectDsl}, ExpressionMethods, OptionalExtension, RunQueryDsl, SelectableHelper};
+use diesel::{query_dsl::methods::{FilterDsl, FindDsl, OrFilterDsl, OrderDsl, SelectDsl}, ExpressionMethods, IntoSql, OptionalExtension, RunQueryDsl, SelectableHelper};
 
 use super::model::{User, UserRegister, NewUser};
 use crate::{db_pool::{get_conn, DbPool}, schema::_users::dsl::*, to_hash};
@@ -103,6 +103,19 @@ pub async fn get_all_user(pool: &DbPool)->Result<Vec<User>,String>{
                                                         .load::<User>(&mut conn);
     match result {
         Ok(users) => Ok(users),
+        Err(e) => Err(format!("Get all error: {}",e)),
+    }
+}
+
+pub async fn get_user_by_username_or_email(name: String,pool: &DbPool)->Result<User,String>{
+    let mut conn=get_conn(&pool);
+    let result= _users.filter(_users::Username.eq(name.clone()))
+                                                .or_filter(_users::Email.eq(name))
+                                                //.select(User::as_select())
+                                                .first::<User>(&mut conn);                                                      
+                                                                
+    match result {
+        Ok(user) => Ok(user),
         Err(e) => Err(format!("Get all error: {}",e)),
     }
 }

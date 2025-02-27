@@ -1,5 +1,6 @@
+use async_trait::async_trait;
 use support_macro::openapi;
-use axum::{extract::{State,Query}, Json};
+use axum::{extract::{Path, Query, State}, response::IntoResponse, Json};
 use crate::{utils::json_extractor::JsonExtractor, AppState};
 use crate::utils::path_extractor::PathExtrator;
 
@@ -35,3 +36,22 @@ pub async fn create_new_user(State(app_state): State<AppState>,user: Query<Strin
     // Ok(Json(user))
     todo!()
 }
+
+//update user api use trait
+
+use crate::modules::traits::{params_body::BodyParamsApi,params_query::{QueryParamsApi,SearchParams},params_path::PathParamsApi};
+
+pub struct UserHandler;
+
+#[async_trait]
+impl PathParamsApi<i32> for UserHandler{
+    async fn get_by_id(Path(user_id): Path<i32>, State(app_state): State<AppState>)-> impl IntoResponse{
+        format!("Get Success :{}",user_id)
+    }
+    async fn delete_by_id(Path(user_id): Path<i32>, State(app_state): State<AppState>)-> impl IntoResponse{
+        format!("Delete Success:{}",user_id)
+    }
+}
+
+
+

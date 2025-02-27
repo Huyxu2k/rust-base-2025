@@ -175,35 +175,35 @@ pub async fn gen_token(user: &User, state: &AppState)->Result<Token,String>{
     claim.exp= now+ REFRESH_EXPIRES;
     let refresh_token_string=encode_token(&state.secret, claim).unwrap();
 
-    let refresh_token=NewRefreshToken{
-        UserID: user.ID.clone(),
-        RefreshToken: refresh_token_string.clone(),
-        Expiry: time_origin.clone().naive_utc(),
-        IPAddress: None,
-        UserAgent: None,
-        CreatedAt: Some(time_origin.naive_utc()),
-        Revoked: Some(false)
-    };
+    // let refresh_token=NewRefreshToken{
+    //     UserID: user.ID.clone(),
+    //     RefreshToken: refresh_token_string.clone(),
+    //     Expiry: time_origin.clone().naive_utc(),
+    //     IPAddress: None,
+    //     UserAgent: None,
+    //     CreatedAt: Some(time_origin.naive_utc()),
+    //     Revoked: Some(false)
+    // };
 
     
-    let access_token=NewAccessToken{
-        UserID: user.ID.clone(),
-        AccessToken: access_token_string.clone(),
-        Expiry: time_origin.clone().naive_utc(),
-        IPAddress: None,
-        UserAgent: None,
-        CreatedAt: Some(time_origin.naive_utc()),
-        Revoked: Some(false)
-    };
+    // let access_token=NewAccessToken{
+    //     UserID: user.ID.clone(),
+    //     AccessToken: access_token_string.clone(),
+    //     Expiry: time_origin.clone().naive_utc(),
+    //     IPAddress: None,
+    //     UserAgent: None,
+    //     CreatedAt: Some(time_origin.naive_utc()),
+    //     Revoked: Some(false)
+    // };
     
-    //Save refresh token 
-    diesel::insert_into(_refresh_tokens)
-            .values(refresh_token)
-            .execute(&mut conn).unwrap();
-    //access token
-    diesel::insert_into(_access_tokens)
-            .values(access_token)
-            .execute(&mut conn).unwrap();
+    // //Save refresh token 
+    // diesel::insert_into(_refresh_tokens)
+    //         .values(refresh_token)
+    //         .execute(&mut conn).unwrap();
+    // //access token
+    // diesel::insert_into(_access_tokens)
+    //         .values(access_token)
+    //         .execute(&mut conn).unwrap();
 
     Ok(Token { user: user.Username.to_string(), 
                 access_token: access_token_string,

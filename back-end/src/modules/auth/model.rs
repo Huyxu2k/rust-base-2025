@@ -1,5 +1,6 @@
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
+use serde::Deserialize;
 
 
 #[derive(Queryable,Selectable,Debug)]
@@ -53,4 +54,12 @@ pub struct NewAccessToken{
     pub UserAgent: Option<String>,
     pub CreatedAt: Option<NaiveDateTime>,
     pub Revoked: Option<bool>,
+}
+
+//request
+
+#[derive(Debug,Deserialize)]
+pub struct UserLogin{
+    pub UserNameOrEmail: String,
+    pub Password: String
 }

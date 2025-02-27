@@ -1,0 +1,30 @@
+db:
+  mysql:
+    host: 127.0.0.1
+    port: 3306
+    user: root
+    password: 123456
+    database: db_base
+    max_connections:  10
+
+server:
+  host: 127.0.0.1
+  port: 8000
+  jwt_secret: test
+  oauth2: 
+    google:
+      client_id: todo
+      client_secret: todo
+      redirect_url: todo
+      auth_url: todo
+      token_url: todo
+      user_info_url: todo
+      email_url: todo
+redis:
+  host: 127.0.0.1
+  port: 3307
+  seq_step: 100
+
+log:
+  level: debug
+  output: console
