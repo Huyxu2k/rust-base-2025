@@ -39,7 +39,7 @@ pub async fn create_new_user(State(app_state): State<AppState>,user: Query<Strin
 
 //update user api use trait
 
-use crate::modules::traits::{params_body::BodyParamsApi,params_query::{QueryParamsApi,SearchParams},params_path::PathParamsApi};
+use crate::modules::traits::{params_body::BodyParamsApi,params_query::QueryParamsApi,params_path::PathParamsApi};
 
 pub struct UserHandler;
 

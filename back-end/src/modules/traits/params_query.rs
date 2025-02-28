@@ -1,39 +1,20 @@
 use async_trait::async_trait;
-use axum::{extract::Query, response::IntoResponse};
-use serde::{Deserialize, Serialize};
+use axum::{extract::{Query, State}, response::IntoResponse};
+use crate::AppState;
 
 #[async_trait]
-pub trait QueryParamsApi<T>
-where
-    T: Send + Sync + 'static,
+pub trait QueryParamsApi
 {
     //async fn search(query: Query<T>) -> impl IntoResponse;
-    async fn delete_by_ids(query: Query<T>) -> impl IntoResponse;
-    async fn get(query: Query<T>) -> impl IntoResponse;
+    async fn delete_by_ids<T>(query: Query<T>,app_state: State<AppState>) -> impl IntoResponse
+    where 
+      T: Send+ Sync+ 'static;
+
+    async fn get<S>(query: Query<S>,app_state: State<AppState>) -> impl IntoResponse
+    where 
+      S: Send+ Sync+ 'static;
 }
 
-#[derive(Debug,Deserialize)]
-pub struct Pagination{
-    pub page: usize,
-    pub per_page: usize
-}
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct SearchParams {
-    pub limit: i32,
-    pub offset: i32,
-    pub sort_order: String,
-    pub sort_field: Option<String>,
-}
-impl Default for SearchParams {
-    fn default() -> Self {
-        Self {
-            limit: 50,
-            offset: 0,
-            sort_order: "ASC".to_string(),
-            sort_field: None,
-        }
-    }
-}
 
 
