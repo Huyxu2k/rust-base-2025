@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use axum::{extract::{Path, State}, response::IntoResponse};
 
-use crate::AppState;
+use crate::{utils::extractor_path::PathExtrator, AppState};
 
 #[async_trait]
 pub trait PathParamsApi<T> 

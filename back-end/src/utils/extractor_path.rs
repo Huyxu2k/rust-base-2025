@@ -6,10 +6,9 @@ pub struct PathExtrator<T>(pub T);
 
 impl<S, T> FromRequestParts<S> for PathExtrator<T> 
 where 
-    T: DeserializeOwned + Send,
+    T: DeserializeOwned + Send + Sync,
     S: Send + Sync,
 {
-    //TODO
     type Rejection = (StatusCode, String);
     
     async fn from_request_parts(parts: &mut Parts,state: &S,) ->Result<Self,Self::Rejection>{

@@ -55,6 +55,6 @@ pub(crate) fn app_routes(state: AppState)->Router{
     //    + có quyền thực hiện tiếp resquest
     //- 3 layer ghi lại log
     .nest("/api", module_routes)
-    .layer(level_2)
+    //.layer(level_2)
 }
 

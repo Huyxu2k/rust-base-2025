@@ -1,4 +1,5 @@
 use axum::{extract::{rejection::JsonRejection, FromRequest, Request}, http::StatusCode, Json};
+use serde::de::DeserializeOwned;
 
 
 
@@ -8,6 +9,7 @@ pub struct JsonExtractor<T>(pub T);
 impl <S, T> FromRequest<S> for JsonExtractor<T>
 where 
     Json<T>: FromRequest<S, Rejection = JsonRejection>,
+    T: DeserializeOwned + Send + Sync,
     S: Send+ Sync
 {
     

@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use support_macro::openapi;
 use axum::{extract::{Path, Query, State}, response::IntoResponse, Json};
-use crate::{utils::json_extractor::JsonExtractor, AppState};
-use crate::utils::path_extractor::PathExtrator;
+use crate::{utils::extractor_body::JsonExtractor, AppState};
+use crate::utils::extractor_path::PathExtrator;
 
 use super::model::{User, UserRegister};
 use super::repository;

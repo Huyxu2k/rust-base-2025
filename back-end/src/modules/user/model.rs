@@ -3,6 +3,8 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::modules::traits::PaginationRequest;
+
 
 #[derive(Queryable,Selectable,Debug)]
 #[diesel(table_name= crate::schema::_users)]
@@ -53,4 +55,11 @@ pub struct LoginRequest{
 pub struct ModifyPasswordRequest{
     pub user_id: i32,
     pub password: String
+}
+
+//User Request
+
+pub struct UserFilter{
+    pub name: Option<String>,
+    pub pagination: Option<PaginationRequest>
 }
