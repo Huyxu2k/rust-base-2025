@@ -2,7 +2,7 @@ use axum::routing::{delete, get};
 use axum::Router;
 
 use crate::modules::traits::params_path::PathParamsApi;
-use crate::modules::user::api::UserHandler;
+use crate::modules::user::handle::UserHandler;
 use crate::AppState;
 pub fn user_router(state: AppState)->Router{
    Router::new()

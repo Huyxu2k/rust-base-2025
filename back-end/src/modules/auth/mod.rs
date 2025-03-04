@@ -1,6 +1,6 @@
 pub mod model;
 pub mod repository;
-pub mod api;
+pub mod handle;
 
 use diesel::prelude::*;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
