@@ -51,10 +51,10 @@ pub(crate) fn app_routes(state: AppState)->Router{
     //    + không đúng trả ra lỗi 401 (yêu cầu gửi refresh token để cấp lại access token mới)
     //    + đúng thì cho phép thực hiện request
     //- 2 layer kiểm tra xem có quyền không?
-    //    + không có quyền trả ra lỗi 4032
+    //    + không có quyền trả ra lỗi 403
     //    + có quyền thực hiện tiếp resquest
     //- 3 layer ghi lại log
-    .nest("/api", module_routes)
+    .nest("/api/v1/", module_routes)
     //.layer(level_2)
 }
 

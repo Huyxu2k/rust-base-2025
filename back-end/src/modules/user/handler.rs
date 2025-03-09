@@ -1,7 +1,9 @@
 use async_trait::async_trait;
+use serde::Deserialize;
 use support_macro::openapi;
-use axum::{extract::{Path, Query, State}, response::IntoResponse, Json};
-use crate::{utils::extractor_body::JsonExtractor, AppState};
+use axum::{extract::{Path, State}, response::IntoResponse, Json};
+use axum_extra::extract::Query;
+use crate::{modules::traits::PaginationRequest, utils::extractor_body::JsonExtractor, AppState};
 use crate::utils::extractor_path::PathExtrator;
 
 use super::model::{User, UserRegister};
@@ -52,6 +54,36 @@ impl PathParamsApi<i32> for UserHandler{
         format!("Delete Success:{}",user_id)
     }
 }
+#[derive(Deserialize,Debug)]
+pub struct DeleteUsersRequest{
+    #[serde(default)]
+    pub ids: Vec<i32>
+}
 
+//get user req
+#[derive(Deserialize,Debug)]
+pub struct FilterUsersRequest{
+    pub name: Option<String>,
+    pub page_req:Option<PaginationRequest>,
+}
 
+#[async_trait]
+impl QueryParamsApi<DeleteUsersRequest,FilterUsersRequest> for UserHandler {
+    async fn delete_by_ids(Query(query): Query<DeleteUsersRequest>, State(app_state): State<AppState>) -> impl IntoResponse {
+        format!("Deletes Success: {:?}",query.ids)
+    }
 
+    async fn get(Query(query): Query<FilterUsersRequest>, State(app_state): State<AppState>) -> impl IntoResponse {
+        format!("Get users with filter: {:?}", query.name)
+    }
+}
+
+#[async_trait]
+impl BodyParamsApi<(),()> for UserHandler {
+    async fn update(body: Json<()>,app_state: State<AppState>)-> impl IntoResponse{
+        todo!()
+    }
+    async fn create(body: Json<()>,app_state: State<AppState>)-> impl IntoResponse{
+        todo!()
+    }
+}

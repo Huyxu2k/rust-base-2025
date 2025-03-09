@@ -20,6 +20,7 @@ uuid= {version = "1.12.0", features = ["v4"]}
 time= "0.3"
 serde_yaml= "0.9"
 chrono="0.4.38"
+axum-extra={version = "0.10.0", features = ["query","form"]}
 
 #hash
 sha2= "0.10.8"

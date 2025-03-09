@@ -1,5 +1,6 @@
-use axum::{extract::{rejection::QueryRejection, FromRequest, Query, Request}, http::StatusCode};
+use axum::{extract::{rejection::QueryRejection, FromRequest, Request}, http::StatusCode};
 use serde::de::DeserializeOwned;
+use axum_extra::extract::Query;
 
 pub struct QueryExtractor<T>(pub T);
 
