@@ -1,18 +1,14 @@
-
-pub mod error;
-pub mod middleware;
+pub mod apps;
 pub mod utils;
 pub mod cache;
-pub mod db_pool;
 pub mod config;
-pub mod routes;
 pub mod modules;
+pub mod container;
 
-pub mod schema;
+pub mod diesel_impl;
 
 use chrono::{DateTime, NaiveDateTime, TimeZone};
 use config::Config;
-use db_pool::{establish_connection, DbPool};
 use sha2::{Sha256,Digest};
 use std::{net::SocketAddr, sync::Arc};
 

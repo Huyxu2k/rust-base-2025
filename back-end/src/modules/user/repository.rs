@@ -1,121 +1,86 @@
-use diesel::{query_dsl::methods::{FilterDsl, FindDsl, OrFilterDsl, OrderDsl, SelectDsl}, ExpressionMethods, IntoSql, OptionalExtension, RunQueryDsl, SelectableHelper};
 
-use super::model::{User, UserRegister, NewUser};
-use crate::{db_pool::{get_conn, DbPool}, schema::_users::dsl::*, to_hash};
-use crate::schema::_users;
+use async_trait::async_trait;
 
-pub async fn create_user(cre_user: UserRegister, pool: &DbPool,cre_id:i32)->Result<User,String>{
-    let mut conn=get_conn(&pool);
+use chrono::NaiveDateTime;
+use diesel::prelude::*;
+use serde::{Deserialize, Serialize};
 
-    let new_user= NewUser{
-        EmployeeId: None,
-        Username: cre_user.user_name,
-        PasswordHash: to_hash(cre_user.password),
-        Email: cre_user.email,
-        EmailVerified: Some(true),
-        IsActive: Some(true),
-        CreatedBy: cre_id,
-        UpdatedBy: cre_id,
-        CreatedAt: Some(chrono::Utc::now().naive_utc()),
-        UpdatedAt: Some(chrono::Utc::now().naive_utc()),
-    };
+use crate::modules::traits::PaginationRequest;
 
-    let result= diesel::insert_into(_users)
-                                                    .values(&new_user)
-                                                    .execute(&mut conn);
-    
-    
-                                                    
-   match result {
-    Ok(_) => {
-        let user=_users::table
-            .order(_users::ID.desc())
-            .select(User::as_select())
-            .first::<User>(&mut conn).unwrap();
-            Ok(user)
-
-    },
-    Err(e) => Err(format!("Insert error: {}",e)),
-   }
-    
+// Repository model
+#[derive(Debug,Clone,Serialize,Deserialize)]
+pub struct User{
+    pub id: i32,
+    pub employee_id: i32,
+    pub user_name: String,
+    pub password_hash: String,
+    pub email: String,
+    pub email_verified: bool,
+    pub is_active: bool,
+    pub created_by: i32,
+    pub updated_by: i32,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
-//TODO 
-pub async fn update_user(user:User,pool: &DbPool)->Result<User,String>{
-    // let mut conn=get_conn(&pool);
-    // let result=diesel::update(_users.find(user.ID))
-    //                                                     .set((Username.eq(user.Username),Em;ail))
-
-    // Ok(())
-    todo!()
-}
-pub async fn delete_user(id: i32,pool: &DbPool)->Result<i32,String>{
-    let mut conn=get_conn(&pool);
-    let mut user=get_user_by_id(id,pool).await.unwrap();
-    user.IsActive=Some(false);
-
-    let result= diesel::update(_users.find(id))
-                        .set(IsActive.eq(false))
-                        .execute(&mut conn);
-
-    match result {
-        Ok(_) => Ok(id),
-        Err(e) => Err(format!("Delete error: {}",e)) ,
-    }
-}
-pub async fn modify_password(id: i32, old_password: String, new_password:String,is_admin: bool,pool: &DbPool)->Result<User,String>{
-    let mut conn=get_conn(&pool);
-   if is_admin{
-        todo!()
-   }else {
-    let mut user=get_user_by_id(id,pool).await.unwrap();
-    let pwd_hash=to_hash(old_password);
-    if pwd_hash==user.PasswordHash{
-        user.PasswordHash=pwd_hash;
-        let result=diesel::update(_users.find(id))
-                        .set(PasswordHash.eq(to_hash(new_password)))
-                        .execute(&mut conn);
-        match result {
-            Ok(_) => Ok(user),
-            Err(e) => Err(format!("Update password error: {}",e)),
-        }
-    }else {
-        Err("Old password is incorrect".to_string())
-    }
-   }
+#[derive(Debug,Deserialize,Serialize)]
+pub struct LoginRequest{
+    pub account: String,
+    pub password: String,
 }
 
-pub async fn get_user_by_id(id:i32,pool: &DbPool)->Result<User,String>{
-    let mut conn=get_conn(&pool);
-    let result= _users.find(id)
-                                                            .select(User::as_select())
-                                                            .first(&mut conn)
-                                                            .optional();
-    match result {
-        Ok(Some(user)) => Ok(user),
-        Ok(None)=>Err(format!("Not found User by Id: {}",id)),
-        Err(e) => Err(format!("Get by id error: {}",e)),
-    }
-}
-pub async fn get_all_user(pool: &DbPool)->Result<Vec<User>,String>{
-    let mut conn=get_conn(&pool);
-    let result= _users.select(User::as_select())
-                                                        .load::<User>(&mut conn);
-    match result {
-        Ok(users) => Ok(users),
-        Err(e) => Err(format!("Get all error: {}",e)),
-    }
+pub struct ModifyPasswordRequest{
+    pub user_id: i32,
+    pub password: String
 }
 
-pub async fn get_user_by_username_or_email(name: String,pool: &DbPool)->Result<User,String>{
-    let mut conn=get_conn(&pool);
-    let result= _users.filter(_users::Username.eq(name.clone()))
-                                                .or_filter(_users::Email.eq(name))
-                                                //.select(User::as_select())
-                                                .first::<User>(&mut conn);                                                      
-                                                                
-    match result {
-        Ok(user) => Ok(user),
-        Err(e) => Err(format!("Get all error: {}",e)),
-    }
+pub struct UserIdentity{
+    pub user_id: i32,
+    pub email: String,
+    pub role: String
+}
+
+//Request model 
+
+/// Delete users by id
+#[derive(Deserialize,Debug)]
+pub struct DeleteUsersRequest{
+    #[serde(default)]
+    pub ids: Vec<i32>
+}
+
+/// Filter users
+#[derive(Deserialize,Debug)]
+pub struct FilterUsersRequest{
+    pub name: Option<String>,
+    pub pagination:PaginationRequest,
+}
+
+/// Create user
+#[derive(Deserialize,Debug)]
+pub struct CreateUserRequest{
+    pub user_name: String,
+    pub email: String,
+    pub password: String
+}
+
+/// Update user
+#[derive(Deserialize,Debug)]
+pub struct UpdateUserRequest{
+    pub id: i32,
+    pub employee_id: i32,
+    pub user_name: String,
+    pub password: String,
+    pub email: String,
+}
+
+#[async_trait]
+pub trait UserRepo: Send+ Sync{
+  async fn get(&self,filter:FilterUsersRequest)->Result<Vec<User>,String>;
+  async fn get_by_id(&self, user_id:i32)->Result<User,String>;
+  async fn get_by_email_or_username(&self,email_or_username:String)->Result<User, String>;
+  async fn create(&self,user:CreateUserRequest,user_id: i32)->Result<User,String>;
+  async fn update(&self,user:UpdateUserRequest,user_id: i32)->Result<User,String>;
+  async fn delete_by_id(&self,user_id:i32)->Result<i32,String>;
+  async fn delete_list_ids(&self, user_ids: Vec<i32>)->Result<Vec<i32>,String>;
 }

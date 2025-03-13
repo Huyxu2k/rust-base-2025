@@ -8,7 +8,6 @@ use model::{AccessToken, NewAccessToken, NewRefreshToken,RefreshToken};
 use serde::{Deserialize, Serialize};
 use crate::{db_pool::{get_conn, DbPool},schema::{_access_tokens::dsl::*, _refresh_tokens::dsl::*},AppState};
 use super::user::model::User;
-use crate::schema::{_access_tokens,_refresh_tokens};
 
 
 pub const REFRESH_EXPIRES: i64=24*60*60;

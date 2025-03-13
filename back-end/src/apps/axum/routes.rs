@@ -2,8 +2,8 @@ use axum::routing::{delete,get,post,put};
 use axum::Router;
 use tower::ServiceBuilder;
 
-use crate::middleware::layer::{health_check, AccessTokenLayer, AuthorizationLayer, LoggingLayer, RefreshTokenLayer };
-use crate::middleware::TLayer;
+use super::middlewares::layer::{health_check, AccessTokenLayer, AuthorizationLayer, LoggingLayer, RefreshTokenLayer };
+use super::middlewares::TLayer;
 use crate::modules::user::route::user_router;
 use crate::AppState;
 
