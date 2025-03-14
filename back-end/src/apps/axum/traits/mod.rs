@@ -1,9 +1,9 @@
 use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
 use serde::{Deserialize, Serialize};
 
-pub mod params_body;
-pub mod params_path;
-pub mod params_query;
+// pub mod params_body;
+// pub mod params_path;
+// pub mod params_query;
 
 
 #[derive(Debug,Deserialize,Serialize)]
@@ -62,21 +62,4 @@ pub fn validate_requierd<T: Serialize>(data: &T)-> Result<(), TResponse<()>>{
     }
     
     Ok(())
-}
-
-
-#[derive(Debug,Deserialize)]
-pub struct PaginationRequest{
-    #[serde(default="default_limit")]
-    pub limit: usize,
-    #[serde(default="default_offset")]
-    pub offset: usize
-}
-
-fn default_limit() -> usize {
-    50
-}
-
-fn default_offset() -> usize {
-    0
 }

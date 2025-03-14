@@ -80,7 +80,6 @@ use crate::modules::user::repository::UserRepo;
 use crate::modules::user::repository::{
     CreateUserRequest, FilterUsersRequest, UpdateUserRequest, User,
 };
-use crate::to_hash;
 
 pub struct UserDieselImpl {
     pool: Arc<DbConn>,
@@ -165,7 +164,7 @@ impl UserRepo for UserDieselImpl {
             let new_user = NewUser {
                 EmployeeId: None,
                 Username: user.user_name,
-                PasswordHash: to_hash(user.password),
+                PasswordHash: user.password,
                 Email: user.email,
                 EmailVerified: Some(true),
                 IsActive: Some(true),
@@ -195,14 +194,14 @@ impl UserRepo for UserDieselImpl {
 
         self.get_by_id(inserted_id).await.map_err(|e| e.to_string())
     }
-    async fn update(&self, user: UpdateUserRequest, user_id: i32) -> Result<User, String> {
+    async fn update(&self, user_id:i32, user: UpdateUserRequest, by_id: i32) -> Result<User, String> {
         let pool = self.pool.clone();
         task::spawn_blocking(move || {
             let mut conn = pool
                 .get()
                 .map_err(|e| format!("Database connection error: {}", e))?;
 
-            let result = diesel::update(_users.find(user.id))
+            let result = diesel::update(_users.find(user_id))
                 .set(Username.eq(user.user_name))
                 .execute(&mut conn)
                 .map_err(|e| e.to_string())?;
@@ -211,7 +210,7 @@ impl UserRepo for UserDieselImpl {
                 return Err("Can't updated".to_string());
             }
             let user_update = _users
-                .find(user.id)
+                .find(user_id)
                 .first::<UserDiesel>(&mut conn)
                 .map_err(|e| e.to_string());
 
