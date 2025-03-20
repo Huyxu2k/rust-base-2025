@@ -10,7 +10,7 @@ use super::repository::{CreateUserRequest, FilterUsersRequest, UpdateUserRequest
 pub trait UserService: Send + Sync {
     async fn get(&self, filter: FilterUsersRequest) -> Result<Vec<User>, String>;
     async fn get_by_id(&self, user_id: i32) -> Result<User, String>;
-    async fn get_by_email_or_username(&self, email_or_username: String) -> Result<User, String>;
+    //async fn get_by_email_or_username(&self, email_or_username: String) -> Result<User, String>;
     async fn create(&self, user: CreateUserRequest, by_id: i32) -> Result<User, String>;
     async fn update(
         &self,
@@ -20,6 +20,7 @@ pub trait UserService: Send + Sync {
     ) -> Result<User, String>;
     async fn delete_by_id(&self, user_id: i32) -> Result<i32, String>;
     async fn delete_list_ids(&self, user_ids: Vec<i32>) -> Result<Vec<i32>, String>;
+    //async fn update_password(&self, user_id: i32, )
     //add logic here
 }
 
@@ -36,9 +37,9 @@ impl UserService for UserServiceImpl {
     async fn get_by_id(&self, user_id: i32) -> Result<User, String> {
         self.user_repo.get_by_id(user_id).await.map_err(|e|e.to_string())
     }
-    async fn get_by_email_or_username(&self, email_or_username: String) -> Result<User, String> {
-        todo!();
-    }
+    // async fn get_by_email_or_username(&self, email_or_username: String) -> Result<User, String> {
+    //     todo!();
+    // }
     async fn create(&self, user: CreateUserRequest, by_id: i32) -> Result<User, String> {
         self.user_repo.create(user, by_id).await.map_err(|e|e.to_string())
     }
@@ -51,9 +52,9 @@ impl UserService for UserServiceImpl {
         self.user_repo.update(user_id, user, by_id).await.map_err(|e|e.to_string())
     }
     async fn delete_by_id(&self, user_id: i32) -> Result<i32, String> {
-        todo!();
+        self.user_repo.delete_by_id(user_id).await.map_err(|e|e.to_string())
     }
     async fn delete_list_ids(&self, user_ids: Vec<i32>) -> Result<Vec<i32>, String> {
-        todo!();
+        self.user_repo.delete_list_ids(user_ids).await.map_err(|e|e.to_string())
     }
 }
