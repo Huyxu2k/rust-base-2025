@@ -8,6 +8,7 @@ use serde_yaml::Error;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config{
     pub db: DbConfig,
+    pub secret: SecretConfig,
     pub server: ServerConfig,
     pub redis: ResdisConfig,
     pub log: LogConfig
@@ -17,6 +18,13 @@ impl Config {
         let content= fs::read_to_string(file).unwrap();
         Ok(serde_yaml::from_str(&content)?)
     }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SecretConfig {
+    pub salt: String,
+    pub refresh_secret: String,
+    pub access_secret: String
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

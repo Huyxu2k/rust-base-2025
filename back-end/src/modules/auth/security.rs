@@ -43,8 +43,8 @@ pub trait SecurityService: Send + Sync {
     async fn encode_token(&self, token_type: TypeToken, claim: Claims) -> Result<String, String>;
 }
 pub struct SecurityServiceImpl {
-    access_key: String,
-    refresh_key: String,
+    pub access_key: String,
+    pub refresh_key: String,
 }
 pub enum TypeToken {
     Access,
