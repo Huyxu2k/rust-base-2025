@@ -16,11 +16,12 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct UserContainer {
+    //user
     pub user_service: Arc<dyn UserService>,
-    pub user_service_impl: Arc<UserServiceImpl>,
+    //auth
     pub auth_service: Arc<dyn AuthService>,
+    //security
     pub security_service: Arc<dyn SecurityService>,
-    pub security_service_impl: Arc<SecurityServiceImpl>,
 }
 
 #[derive(Clone)]
@@ -32,18 +33,25 @@ impl UserContainer {
 
         let user_repo: Arc<dyn UserRepo> = Arc::new(UserDieselImpl::new(pool));
 
-        //service
-        let security_service = Arc::new(SecurityServiceImpl {
-            access_key: config.secret.access_secret ,
-            refresh_key: config.secret.refresh_secret ,
+        let security_service_impl = Arc::new(SecurityServiceImpl {
+            access_key: config.secret.access_secret,
+            refresh_key: config.secret.refresh_secret,
+        });
+
+        let user_service_impl = Arc::new(UserServiceImpl {
+            user_repo: user_repo.clone(),
+            security_service: security_service_impl.clone(),
+        });
+
+        let auth_service_impl= Arc::new(AuthServiceImpl{
+            user_repo: user_repo.clone(),
+            security_service: security_service_impl.clone(),
         });
 
         UserContainer {
-            user_service: todo!(),
-            user_service_impl: todo!(),
-            auth_service: todo!(),
-            security_service: todo!(),
-            security_service_impl: todo!(),
+            user_service: user_service_impl,
+            auth_service: auth_service_impl,
+            security_service: security_service_impl,
         }
     }
 }

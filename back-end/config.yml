@@ -6,7 +6,10 @@ db:
     password: 123456
     database: db_base
     max_connections:  10
-
+secret:
+  salt: "test"
+  refresh_secret: "test1"
+  access_secret: "test2"
 server:
   host: 127.0.0.1
   port: 8000

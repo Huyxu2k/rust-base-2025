@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use crate::modules::auth::{repository::AuthRepo, service::AuthService};
+use crate::modules::auth::security::SecurityService;
 
 use super::repository::{CreateUserRequest, FilterUsersRequest, UpdateUserRequest, User, UserRepo};
 
@@ -26,7 +26,7 @@ pub trait UserService: Send + Sync {
 
 pub struct UserServiceImpl {
     pub user_repo: Arc<dyn UserRepo>,
-    pub auth_service: Arc<dyn AuthService>,
+    pub security_service: Arc<dyn SecurityService>,
 }
 
 #[async_trait]
