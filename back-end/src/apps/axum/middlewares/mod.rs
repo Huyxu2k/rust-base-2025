@@ -1,5 +1,3 @@
-use crate::AppState;
-
 pub(crate) mod layer;
 //pub mod rate_limiting_middleware;
 
@@ -10,13 +8,14 @@ use axum::{
 use tower::{Service, Layer};
 use std::task::{Context, Poll};
 use futures_util::future::BoxFuture;
+use crate::apps::axum::AppState;
 
 
 pub const AUTHORIZATION_HEADER: &str= "Authorization";
 pub const BEARER: &str= "Bearer ";
 
 pub trait THandler {
-    fn handle_request<B>(req: Request<B>, state: &AppState) -> Result<Request<B>,Response>;
+    fn handle_request<B>(req: Request<B>, state: AppState) -> Result<Request<B>,Response>;
 }
 
 #[derive(Clone)]
@@ -68,7 +67,7 @@ where
     }
 
     fn call(&mut self, req: Request) -> Self::Future {
-        let result = T::handle_request(req, &self.state);
+        let result = T::handle_request(req, self.state.clone());
         match result {
             Ok(modified_req) =>{
                 let future= self.inner.call(modified_req);

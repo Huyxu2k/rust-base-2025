@@ -5,6 +5,10 @@ pub mod handlers;
 pub mod traits;
 pub mod state;
 
+use std::net::SocketAddr;
+use state::AppState;
+use crate::config::Config;
+
 
 pub async fn start(config: Config){
     let state= AppState::new(config.clone()).await;

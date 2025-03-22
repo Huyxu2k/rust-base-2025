@@ -2,9 +2,8 @@ use axum::{
     body::Body, extract::Request, http::StatusCode, response::Response
 };
 
-use crate::AppState;
+use crate::apps::axum::state::AppState;
 use super::{THandler, AUTHORIZATION_HEADER, BEARER};
-use crate::modules::auth::{verify_token,TypeToken};
 
 pub async fn health_check()->Response{
     let response = Response::builder()
@@ -20,7 +19,7 @@ pub async fn health_check()->Response{
 pub struct AccessTokenLayer;
 
 impl THandler for AccessTokenLayer {
-    fn handle_request<B>(req: Request<B>, state: &AppState) -> Result<Request<B>, Response> {
+    fn handle_request<B>(req: Request<B>, state: AppState) -> Result<Request<B>, Response> {
         let headers= req.headers();
         let response = Response::builder()
                 .status(StatusCode::UNAUTHORIZED)

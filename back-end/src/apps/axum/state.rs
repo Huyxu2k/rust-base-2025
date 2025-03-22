@@ -1,24 +1,18 @@
 use chrono::{DateTime, NaiveDateTime, TimeZone};
 use config::Config;
-use sha2::{Sha256,Digest};
-use std::{net::SocketAddr, sync::Arc};
+
+use crate::{config, container::UserContainer};
 
 
 #[derive(Clone)]
 pub struct AppState{
-    pub pool: Arc<DbPool>,
-    pub jwt_secret: String,
-    pub secret: String
+    pub user_container: UserContainer
 }
 
 impl AppState {
-    pub async fn new(config: Config)->AppState{
-        let pool=Arc::new(establish_connection(config.db.mysql));
-
-        AppState { 
-            pool, 
-            jwt_secret: "test".to_string(),
-            secret:"hello".to_string()
+    pub async fn new(config: Config)->Self{
+        AppState{
+            user_container: UserContainer::new(config.clone()),
         }
     }
 }

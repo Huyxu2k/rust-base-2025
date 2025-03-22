@@ -2,10 +2,10 @@ use axum::routing::{delete,get,post,put};
 use axum::Router;
 use tower::ServiceBuilder;
 
+use super::handlers::users::user_router;
 use super::middlewares::layer::{health_check, AccessTokenLayer, AuthorizationLayer, LoggingLayer, RefreshTokenLayer };
 use super::middlewares::TLayer;
-use crate::modules::user::route::user_router;
-use crate::AppState;
+use crate::apps::axum::state::AppState;
 
 type _AccessTokenLayer = TLayer<AccessTokenLayer>;
 type _RefreshTokenLayer = TLayer<RefreshTokenLayer>;
