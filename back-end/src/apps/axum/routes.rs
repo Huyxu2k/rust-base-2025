@@ -1,3 +1,6 @@
+use std::net::SocketAddr;
+use std::sync::Arc;
+
 use axum::routing::{delete,get,post,put};
 use axum::Router;
 use tower::ServiceBuilder;
@@ -6,13 +9,14 @@ use super::handlers::users::user_router;
 use super::middlewares::layer::{health_check, AccessTokenLayer, AuthorizationLayer, LoggingLayer, RefreshTokenLayer };
 use super::middlewares::TLayer;
 use crate::apps::axum::state::AppState;
+use crate::config::Config;
 
 type _AccessTokenLayer = TLayer<AccessTokenLayer>;
 type _RefreshTokenLayer = TLayer<RefreshTokenLayer>;
 type _LoggingLayer = TLayer<LoggingLayer>;
 type _AuthorizationLayer = TLayer<AuthorizationLayer>;
 
-pub(crate) fn app_routes(state: AppState)->Router{
+fn app_routes(state: Arc<AppState>)->Router{
 
     // init layer
     let access_token_layer= _AccessTokenLayer::new(state.clone());
@@ -58,3 +62,19 @@ pub(crate) fn app_routes(state: AppState)->Router{
     //.layer(level_2)
 }
 
+pub async fn start(config: Config){
+    let state=Arc::new(AppState::new(config.clone()).await);
+    let app= app_routes(state);
+
+    let listener= tokio::net::TcpListener::bind(&config.server.server_url())
+                .await
+                .unwrap();
+    tracing::debug!("Listening on {}", listener.local_addr().unwrap());
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>()   
+    )
+    .await
+    .unwrap();
+
+}

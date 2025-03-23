@@ -4,7 +4,7 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::modules::PaginationRequest;
+use crate::modules::{PaginationRequest, RepoError};
 
 // Repository model
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,16 +73,16 @@ pub struct UpdateUserRequest {
 
 #[async_trait]
 pub trait UserRepo: Send + Sync {
-    async fn get(&self, filter: FilterUsersRequest) -> Result<Vec<User>, String>;
-    async fn get_by_id(&self, user_id: i32) -> Result<User, String>;
-    async fn get_by_email_or_username(&self, email_or_username: String) -> Result<User, String>;
-    async fn create(&self, user: CreateUserRequest, by_id: i32) -> Result<User, String>;
+    async fn get(&self, filter: FilterUsersRequest) -> Result<Vec<User>, RepoError>;
+    async fn get_by_id(&self, user_id: i32) -> Result<User, RepoError>;
+    async fn get_by_email_or_username(&self, email_or_username: String) -> Result<User, RepoError>;
+    async fn create(&self, user: CreateUserRequest, by_id: i32) -> Result<User, RepoError>;
     async fn update(
         &self,
         user_id: i32,
         user: UpdateUserRequest,
         by_id: i32,
-    ) -> Result<User, String>;
-    async fn delete_by_id(&self, user_id: i32) -> Result<i32, String>;
-    async fn delete_list_ids(&self, user_ids: Vec<i32>) -> Result<Vec<i32>, String>;
+    ) -> Result<User, RepoError>;
+    async fn delete_by_id(&self, user_id: i32) -> Result<i32, RepoError>;
+    async fn delete_list_ids(&self, user_ids: Vec<i32>) -> Result<Vec<i32>, RepoError>;
 }

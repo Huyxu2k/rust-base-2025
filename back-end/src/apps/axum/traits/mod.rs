@@ -1,11 +1,6 @@
 use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
 use serde::{Deserialize, Serialize};
 
-// pub mod params_body;
-// pub mod params_path;
-// pub mod params_query;
-
-
 #[derive(Debug,Deserialize,Serialize)]
 pub struct TResponse<T> {
     #[serde(skip)]

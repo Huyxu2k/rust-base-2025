@@ -2,7 +2,7 @@ use axum::{
     body::Body, extract::Request, http::StatusCode, response::Response
 };
 
-use crate::apps::axum::state::AppState;
+use crate::{apps::axum::state::AppState, modules::auth::security::TypeToken};
 use super::{THandler, AUTHORIZATION_HEADER, BEARER};
 
 pub async fn health_check()->Response{
@@ -44,7 +44,7 @@ impl THandler for AccessTokenLayer {
 pub struct RefreshTokenLayer;
 
 impl THandler for RefreshTokenLayer {
-    fn handle_request<B>(req: Request<B>, state: &AppState) -> Result<Request<B>, Response> {
+    fn handle_request<B>(req: Request<B>, state: AppState) -> Result<Request<B>, Response> {
         // TODO
         Ok(req)
     }
@@ -55,7 +55,7 @@ impl THandler for RefreshTokenLayer {
 pub struct AuthorizationLayer;
 
 impl THandler for AuthorizationLayer {
-    fn handle_request<B>(req: Request<B>, state: &AppState) -> Result<Request<B>, Response> {
+    fn handle_request<B>(req: Request<B>, state: AppState) -> Result<Request<B>, Response> {
         let role_header = req.headers().get("Role");
         let response = Response::builder()
             .status(StatusCode::FORBIDDEN)
@@ -77,7 +77,7 @@ impl THandler for AuthorizationLayer {
 pub struct LoggingLayer;
 
 impl THandler for LoggingLayer {
-    fn handle_request<B>(req: Request<B>, state: &AppState) -> Result<Request<B>, Response> {
+    fn handle_request<B>(req: Request<B>, state: AppState) -> Result<Request<B>, Response> {
         // TODO
         Ok(req)
     }

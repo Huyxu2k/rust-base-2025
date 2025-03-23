@@ -3,7 +3,7 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::modules::user::repository::User;
+use crate::modules::{user::repository::User, CommonError, RepoError};
 
 pub const REFRESH_EXPIRES: i64 = 24 * 60 * 60;
 pub const EXPIRES: i64 = 4 * 60 * 60;
@@ -30,17 +30,17 @@ impl Claims {
 }
 #[async_trait]
 pub trait SecurityService: Send + Sync {
-    async fn hash(&self, input: &str) -> Result<String, String>;
+    async fn hash(&self, input: &str) -> Result<String, CommonError>;
 
-    async fn verify_hash(&self, hashed: &str, raw: &str) -> Result<bool, String>;
+    async fn verify_hash(&self, hashed: &str, raw: &str) -> Result<bool, CommonError>;
 
-    async fn verify_token(&self, token_type: TypeToken, token: String)-> Result<bool, String>;
+    async fn verify_token(&self, token_type: TypeToken, token: String)-> Result<bool, CommonError>;
 
-    async fn token_generator(&self, user: &User) -> Result<Token, String>;
+    async fn token_generator(&self, user: &User) -> Result<Token, CommonError>;
 
-    async fn decode_token(&self, token_type: TypeToken, token: &str) -> Result<TokenData<Claims>, String>;
+    async fn decode_token(&self, token_type: TypeToken, token: &str) -> Result<TokenData<Claims>, CommonError>;
 
-    async fn encode_token(&self, token_type: TypeToken, claim: Claims) -> Result<String, String>;
+    async fn encode_token(&self, token_type: TypeToken, claim: Claims) -> Result<String, CommonError>;
 }
 pub struct SecurityServiceImpl {
     pub access_key: String,
@@ -53,40 +53,40 @@ pub enum TypeToken {
 
 #[async_trait]
 impl SecurityService for SecurityServiceImpl {
-    async fn hash(&self, value: &str) -> Result<String, String> {
+    async fn hash(&self, value: &str) -> Result<String, CommonError> {
         let mut hasher = Sha256::new();
         hasher.update(value.as_bytes());
         let result = hasher.finalize();
         Ok(hex::encode(result))
     }
 
-    async fn verify_hash(&self, hashed: &str, pass: &str) -> Result<bool, String> {
+    async fn verify_hash(&self, hashed: &str, pass: &str) -> Result<bool, CommonError> {
         let hashed_curr = self.hash(pass).await?;
         Ok(hashed_curr == hashed)
     }
 
-    async fn verify_token(&self, token_type: TypeToken, token: String)-> Result<bool, String>{
+    async fn verify_token(&self, token_type: TypeToken, token: String)-> Result<bool, CommonError>{
         match token_type {
             TypeToken::Access => {
-                let decode_claim = self.decode_token(TypeToken::Access,&token).await.map_err(|e| e.to_string())?;
+                let decode_claim = self.decode_token(TypeToken::Access,&token).await.map_err(|e| e.into())?;
                 if decode_claim.claims.exp <= chrono::Utc::now().timestamp() {
                     Ok(true)
                 } else {
-                    Err(format!("Access token is expired!"))
+                    Err(RepoError{message: "Access token is expired!".to_string()}.into())
                 }
             }
             TypeToken::Refresh => {
-                let decode_claim =self.decode_token(TypeToken::Refresh,&token).await.map_err(|e| e.to_string())?;
+                let decode_claim =self.decode_token(TypeToken::Refresh,&token).await.map_err(|e| e.into())?;
                 if decode_claim.claims.exp <= chrono::Utc::now().timestamp() {
                     Ok(true)
                 } else {
-                    Err(format!("Refresh token is expired!"))
+                    Err(RepoError{message: "Refresh token is expired!".to_string()}.into())
                 }
             }
         }
     }
 
-    async fn token_generator(&self, user: &User) -> Result<Token, String> {
+    async fn token_generator(&self, user: &User) -> Result<Token, CommonError> {
         let time_origin = chrono::Utc::now();
         let now = time_origin.clone().timestamp();
         let exp = now + EXPIRES;
@@ -98,13 +98,13 @@ impl SecurityService for SecurityServiceImpl {
         let access_token_string = self
             .encode_token(TypeToken::Access, claim.clone())
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| e.into())?;
 
         claim.exp = now + REFRESH_EXPIRES;
         let refresh_token_string = self
             .encode_token(TypeToken::Refresh, claim)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| e.into())?;
 
         Ok(Token {
             user: user.user_name.to_string(),
@@ -113,7 +113,7 @@ impl SecurityService for SecurityServiceImpl {
         })
     }
 
-    async fn decode_token(&self, token_type: TypeToken, token: &str) -> Result<TokenData<Claims>, String> {
+    async fn decode_token(&self, token_type: TypeToken, token: &str) -> Result<TokenData<Claims>, CommonError> {
         let result;
         match token_type {
             TypeToken::Access => {
@@ -133,11 +133,11 @@ impl SecurityService for SecurityServiceImpl {
         }
         match result {
             Ok(decode) => Ok(decode),
-            Err(e) => Err(format!("Error decode token: {}", e)),
+            Err(e) =>Err(RepoError{message: format!("Error decode token: {}", e)}.into()),
         }
     }
 
-    async fn encode_token(&self, token_type: TypeToken, claim: Claims) -> Result<String, String> {
+    async fn encode_token(&self, token_type: TypeToken, claim: Claims) -> Result<String, CommonError> {
         let token;
         match token_type {
             TypeToken::Access => {
@@ -157,7 +157,7 @@ impl SecurityService for SecurityServiceImpl {
         }
         match token {
             Ok(token) => Ok(token),
-            Err(e) => Err(format!("Error encode token: {}", e)),
+            Err(e) => Err(RepoError{message: format!("Error encode token: {}", e)}.into()),
         }
     }
 }
