@@ -9,9 +9,9 @@ pub const REFRESH_EXPIRES: i64 = 24 * 60 * 60;
 pub const EXPIRES: i64 = 4 * 60 * 60;
 
 pub struct Token {
-    user: String,
-    access_token: String,
-    refresh_token: String,
+    pub user: String,
+    pub access_token: String,
+    pub refresh_token: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

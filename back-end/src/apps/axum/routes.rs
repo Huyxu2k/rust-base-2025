@@ -5,6 +5,7 @@ use axum::routing::{delete,get,post,put};
 use axum::Router;
 use tower::ServiceBuilder;
 
+use super::handlers::auth::auth_router;
 use super::handlers::users::user_router;
 use super::middlewares::layer::{health_check, AccessTokenLayer, AuthorizationLayer, LoggingLayer, RefreshTokenLayer };
 use super::middlewares::TLayer;
@@ -36,7 +37,8 @@ fn app_routes(state: Arc<AppState>)->Router{
     
     // các route của các module
     let module_routes = Router::new()
-                        .nest("/user", user_router(state.clone()));
+                        .nest("/user", user_router(state.clone()))
+                        .nest("auth",auth_router(state.clone()));
                         //.route("/products", method_router);
                     
 

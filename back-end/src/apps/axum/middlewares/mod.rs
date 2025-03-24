@@ -1,34 +1,38 @@
 pub(crate) mod layer;
 //pub mod rate_limiting_middleware;
 
-
-use axum::{
-    extract::Request, response::Response
-};
-use tower::{Service, Layer};
-use std::task::{Context, Poll};
+use crate::apps::axum::state::AppState;
+use async_trait::async_trait;
+use axum::{extract::Request, response::Response};
 use futures_util::future::BoxFuture;
-use crate::apps::axum::AppState;
+use std::{
+    sync::Arc,
+    task::{Context, Poll},
+};
+use tower::{Layer, Service};
 
+pub const AUTHORIZATION_HEADER: &str = "Authorization";
+pub const BEARER: &str = "Bearer ";
 
-pub const AUTHORIZATION_HEADER: &str= "Authorization";
-pub const BEARER: &str= "Bearer ";
-
-pub trait THandler {
-    fn handle_request<B>(req: Request<B>, state: AppState) -> Result<Request<B>,Response>;
+#[async_trait]
+pub trait THandler: Send + Sync {
+    async fn handle_request<B>(
+        req: Request<B>,
+        state: Arc<AppState>,
+    ) -> Result<Request<B>, Response>;
 }
 
 #[derive(Clone)]
 pub struct TLayer<T> {
-    state: AppState,
+    state: Arc<AppState>,
     _marker: std::marker::PhantomData<T>,
 }
 
 impl<T> TLayer<T> {
-    pub fn new(state: AppState) -> Self {
-        Self { 
-            state, 
-            _marker: std::marker::PhantomData 
+    pub fn new(state: Arc<AppState>) -> Self {
+        Self {
+            state,
+            _marker: std::marker::PhantomData,
         }
     }
 }
@@ -37,10 +41,10 @@ impl<S, T> Layer<S> for TLayer<T> {
     type Service = TMiddleware<S, T>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        TMiddleware { 
-            inner, 
+        TMiddleware {
+            inner,
             state: self.state.clone(),
-            _marker: std::marker::PhantomData
+            _marker: std::marker::PhantomData,
         }
     }
 }
@@ -48,15 +52,15 @@ impl<S, T> Layer<S> for TLayer<T> {
 #[derive(Clone)]
 pub struct TMiddleware<S, T> {
     inner: S,
-    state: AppState,
+    state: Arc<AppState>,
     _marker: std::marker::PhantomData<T>,
 }
 
 impl<S, T> Service<Request> for TMiddleware<S, T>
 where
-    S: Service<Request, Response= Response>+ Send + 'static,
-    S::Future: Send+'static,
-    T: THandler,  
+    S: Service<Request, Response = Response> + Send + Clone + 'static,
+    S::Future: Send +'static,
+    T: THandler + Send + Sync,
 {
     type Response = S::Response;
     type Error = S::Error;
@@ -67,16 +71,18 @@ where
     }
 
     fn call(&mut self, req: Request) -> Self::Future {
-        let result = T::handle_request(req, self.state.clone());
-        match result {
-            Ok(modified_req) =>{
-                let future= self.inner.call(modified_req);
-                Box::pin(async move{
-                    let response: Response= future.await?;
+        let state = self.state.clone();
+        let mut inner = self.inner.clone();
+
+        Box::pin(async move {
+            let result = T::handle_request(req,state).await;
+            match result {
+                Ok(modified_req) => {
+                    let response = inner.call(modified_req).await?;
                     Ok(response)
-                })
-            },
-            Err(response) => Box::pin(async { Ok(response) }),
-        }
+                }
+                Err(response) => Ok(response),
+            }
+        })
     }
 }

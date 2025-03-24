@@ -1,61 +1,74 @@
-use axum::{
-    body::Body, extract::Request, http::StatusCode, response::Response
-};
+use std::sync::Arc;
 
-use crate::{apps::axum::state::AppState, modules::auth::security::TypeToken};
+use async_trait::async_trait;
+use axum::{body::Body, extract::Request, http::StatusCode, response::Response};
+
 use super::{THandler, AUTHORIZATION_HEADER, BEARER};
+use crate::{apps::axum::state::AppState, modules::auth::security::TypeToken};
 
-pub async fn health_check()->Response{
+pub async fn health_check() -> Response {
     let response = Response::builder()
-            .status(StatusCode::OK)
-            .body(Body::from("Success"))
-            .unwrap();
+        .status(StatusCode::OK)
+        .body(Body::from("Success"))
+        .unwrap();
 
     response
 }
 
 // layer check access token
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct AccessTokenLayer;
 
+#[async_trait]
 impl THandler for AccessTokenLayer {
-    fn handle_request<B>(req: Request<B>, state: AppState) -> Result<Request<B>, Response> {
-        let headers= req.headers();
+    async fn handle_request<B>(req: Request<B>, state: Arc<AppState>) -> Result<Request<B>, Response> {
+        let headers = req.headers();
         let response = Response::builder()
-                .status(StatusCode::UNAUTHORIZED)
-                .body(Body::from("Unauthorized"))
-                .unwrap();
+            .status(StatusCode::UNAUTHORIZED)
+            .body(Body::from("Unauthorized"))
+            .unwrap();
 
-        if let Some(auth_header)=headers.get(AUTHORIZATION_HEADER){
-           let header = auth_header.to_str().unwrap_or("");
-           if header.starts_with(BEARER) && verify_token(header.to_string(),TypeToken::Access,&state).unwrap(){
-             return Ok(req);
-           }
-           Err(response)
-        }else {
-            Err(response)
+        if let Some(auth_header) = headers.get(AUTHORIZATION_HEADER) {
+            let header = match auth_header.to_str() {
+                Ok(h) => h,
+                Err(_) => return Err(response), // Trả về lỗi nếu không thể parse header
+            };
+
+            if header.starts_with(BEARER) {
+                if let Ok(is_valid) = state
+                    .user_container
+                    .security_service
+                    .verify_token(TypeToken::Access, header.to_string()).await
+                {
+                    if is_valid {
+                        return Ok(req);
+                    }
+                }
+            }
         }
+        Err(response)
     }
 }
 
-
 // layer check refresh token
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct RefreshTokenLayer;
 
+#[async_trait]
 impl THandler for RefreshTokenLayer {
-    fn handle_request<B>(req: Request<B>, state: AppState) -> Result<Request<B>, Response> {
+    fn handle_request<B>(req: Request<B>, state: Arc<AppState>) -> Result<Request<B>, Response> {
         // TODO
         Ok(req)
     }
 }
 
 // layer check role
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct AuthorizationLayer;
 
+#[async_trait]
 impl THandler for AuthorizationLayer {
-    fn handle_request<B>(req: Request<B>, state: AppState) -> Result<Request<B>, Response> {
+    fn handle_request<B>(req: Request<B>, state: Arc<AppState>) -> Result<Request<B>, Response> {
         let role_header = req.headers().get("Role");
         let response = Response::builder()
             .status(StatusCode::FORBIDDEN)
@@ -73,13 +86,12 @@ impl THandler for AuthorizationLayer {
 }
 
 // layer save log
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct LoggingLayer;
 
 impl THandler for LoggingLayer {
-    fn handle_request<B>(req: Request<B>, state: AppState) -> Result<Request<B>, Response> {
+    fn handle_request<B>(req: Request<B>, state: Arc<AppState>) -> Result<Request<B>, Response> {
         // TODO
         Ok(req)
     }
 }
-

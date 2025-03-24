@@ -6,12 +6,10 @@ use crate::apps::axum::error::ApiError;
 use crate::apps::axum::state::AppState;
 use crate::modules::user::service::UserService;
 use crate::modules::PaginationRequest;
-use serde::Deserialize;
 use support_macro::openapi;
-use axum::{extract::{Path, State}, response::IntoResponse, Json};
-use axum_extra::extract::Query;
+use axum::{extract::{Path, State}, Json};
 
-use crate::modules::user::repository::{CreateUserRequest, DeleteUsersRequest, FilterUsersRequest, UpdateUserRequest, User, UserIdentity};
+use crate::modules::user::repository::{CreateUserRequest, FilterUsersRequest, User, UserIdentity};
 
 //Implement api trait for UserHandler 
 pub struct UserHandler;
@@ -48,9 +46,8 @@ impl UserHandler {
 
 pub fn user_router(state: Arc<AppState>)->Router{
     Router::new()
-            //  .route("/{id}", get(UserHandler::get_by_id))
-            //  .route("/{id}", delete(UserHandler::delete_by_id))
-            //  .route("/",delete(UserHandler::delete_by_ids))
+             .route("/{id}", get(UserHandler::get_user_by_id))
+             .route("/{id}", delete(UserHandler::delete_user_by_id))
              .route("/",get(UserHandler::get_users))
-             .with_state(state.user_container.user_service)
+             .with_state(state.user_container.user_service.clone())
  }
