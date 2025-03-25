@@ -15,7 +15,7 @@ use crate::modules::user::repository::{CreateUserRequest, FilterUsersRequest, Us
 pub struct UserHandler;
 
 impl UserHandler {
-    pub async fn get_users(user_service: State<Arc<dyn UserService>>,Extension(identity): Extension<UserIdentity>)->Result<Json<Vec<User>>,ApiError>{
+    pub async fn get_users(user_service: State<Arc<dyn UserService>>)->Result<Json<Vec<User>>,ApiError>{
         let filter=FilterUsersRequest{
             name: None,
             pagination: PaginationRequest::default() ,
@@ -24,19 +24,20 @@ impl UserHandler {
 
         Ok(Json(users))
     }
-    pub async fn get_user_by_id(Path(id): Path<i32>,user_service: State<Arc<dyn UserService>>, Extension(identity): Extension<UserIdentity>)->Result<Json<User>,ApiError>{
+    // Extension(identity): Extension<UserIdentity>
+    pub async fn get_user_by_id(Path(id): Path<i32>,user_service: State<Arc<dyn UserService>>)->Result<Json<User>,ApiError>{
         let user=user_service.get_by_id(id).await?;
 
         Ok(Json(user))
     }
-    pub async fn delete_user_by_id(Path(id): Path<i32>,user_service: State<Arc<dyn UserService>>, Extension(identity): Extension<UserIdentity>)->Result<Json<i32>,ApiError>{
+    pub async fn delete_user_by_id(Path(id): Path<i32>,user_service: State<Arc<dyn UserService>>)->Result<Json<i32>,ApiError>{
         let user_id=user_service.delete_by_id(id).await?;
 
         Ok(Json(user_id))
     }
 
-    pub async fn create_user(Json(use_req): Json<CreateUserRequest>,user_service: State<Arc<dyn UserService>>, Extension(identity): Extension<UserIdentity>)->Result<Json<User>,ApiError>{
-        let user=user_service.create(use_req,identity.user_id).await?;
+    pub async fn create_user(Json(use_req): Json<CreateUserRequest>,user_service: State<Arc<dyn UserService>>)->Result<Json<User>,ApiError>{
+        let user=user_service.create(use_req,0).await?;
 
         Ok(Json(user))
     }
@@ -44,10 +45,9 @@ impl UserHandler {
 }
 
 
-pub fn user_router(state: Arc<AppState>)->Router{
+pub fn user_router(state: State<Arc<AppState>>)->Router{
     Router::new()
-             .route("/{id}", get(UserHandler::get_user_by_id))
-             .route("/{id}", delete(UserHandler::delete_user_by_id))
+             .route("/{id}", get(UserHandler::get_user_by_id).delete(UserHandler::delete_user_by_id))
              .route("/",get(UserHandler::get_users))
              .with_state(state.user_container.user_service.clone())
  }

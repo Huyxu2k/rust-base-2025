@@ -1,6 +1,7 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use axum::extract::State;
 use axum::routing::{delete,get,post,put};
 use axum::Router;
 use tower::ServiceBuilder;
@@ -17,7 +18,7 @@ type _RefreshTokenLayer = TLayer<RefreshTokenLayer>;
 type _LoggingLayer = TLayer<LoggingLayer>;
 type _AuthorizationLayer = TLayer<AuthorizationLayer>;
 
-fn app_routes(state: Arc<AppState>)->Router{
+fn app_routes(state: State<Arc<AppState>>)->Router{
 
     // init layer
     let access_token_layer= _AccessTokenLayer::new(state.clone());
@@ -37,16 +38,18 @@ fn app_routes(state: Arc<AppState>)->Router{
     
     // các route của các module
     let module_routes = Router::new()
-                        .nest("/user", user_router(state.clone()))
-                        .nest("auth",auth_router(state.clone()));
+                        .nest("/user", user_router(state.clone()));
                         //.route("/products", method_router);
+
+    let auth_routes = Router::new()
+            .nest("/auth",auth_router(state.clone()));
                     
 
 
     Router::new()
     .route("/health_check",get(health_check) )
     //k phải qua layer nào , nhằm yêu cầu server tạo token và refresh token khi đăng nhập lần đầu
-    //.route("/login", method_router)
+    .nest("/api/v1/",auth_routes)
     //phải qua 1 layer kiểm tra xem refesh token có đúng không?
     //- không đúng trả ra lỗi 401 (yêu cầu đăng nhập lại)
     //- đúng thì cấp access token mới
@@ -65,8 +68,8 @@ fn app_routes(state: Arc<AppState>)->Router{
 }
 
 pub async fn start(config: Config){
-    let state=Arc::new(AppState::new(config.clone()).await);
-    let app= app_routes(state);
+    let state=Arc::new(AppState::new(config.clone()));
+    let app= app_routes(State(state));
 
     let listener= tokio::net::TcpListener::bind(&config.server.server_url())
                 .await

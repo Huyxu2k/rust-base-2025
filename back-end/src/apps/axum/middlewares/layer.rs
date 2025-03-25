@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use axum::{body::Body, extract::Request, http::StatusCode, response::Response};
+use axum::{body::Body, extract::{Request, State}, http::StatusCode, response::Response};
 
 use super::{THandler, AUTHORIZATION_HEADER, BEARER};
 use crate::{apps::axum::state::AppState, modules::auth::security::TypeToken};
@@ -21,7 +21,11 @@ pub struct AccessTokenLayer;
 
 #[async_trait]
 impl THandler for AccessTokenLayer {
-    async fn handle_request<B>(req: Request<B>, state: Arc<AppState>) -> Result<Request<B>, Response> {
+    async fn handle_request<B>(req: Request<B>, state: State<Arc<AppState>>) -> Result<Request<B>, Response>
+    where 
+        B:Send
+    {
+        let state = state.clone(); 
         let headers = req.headers();
         let response = Response::builder()
             .status(StatusCode::UNAUTHORIZED)
@@ -56,7 +60,10 @@ pub struct RefreshTokenLayer;
 
 #[async_trait]
 impl THandler for RefreshTokenLayer {
-    fn handle_request<B>(req: Request<B>, state: Arc<AppState>) -> Result<Request<B>, Response> {
+   async fn handle_request<B>(req: Request<B>, state: State<Arc<AppState>>) -> Result<Request<B>, Response>
+   where 
+        B:Send
+    {
         // TODO
         Ok(req)
     }
@@ -68,20 +75,26 @@ pub struct AuthorizationLayer;
 
 #[async_trait]
 impl THandler for AuthorizationLayer {
-    fn handle_request<B>(req: Request<B>, state: Arc<AppState>) -> Result<Request<B>, Response> {
+    async fn handle_request<B>(req: Request<B>, State(state): State<Arc<AppState>>) -> Result<Request<B>, Response> 
+    where 
+        B:Send
+    {
         let role_header = req.headers().get("Role");
+
         let response = Response::builder()
             .status(StatusCode::FORBIDDEN)
             .body(Body::from("Forbidden"))
             .unwrap();
 
         if let Some(role) = role_header {
-            //TODO Check role
-            if role == "admin" {
-                return Ok(req);
+            if let Ok(role_str) = role.to_str() {
+                let role_owned = role_str.to_owned(); 
+                if role_owned == "admin" {
+                    return Ok(req);
+                }
             }
         }
-        return Err(response);
+        Err(response)
     }
 }
 
@@ -89,8 +102,12 @@ impl THandler for AuthorizationLayer {
 #[derive(Debug, Clone)]
 pub struct LoggingLayer;
 
+#[async_trait]
 impl THandler for LoggingLayer {
-    fn handle_request<B>(req: Request<B>, state: Arc<AppState>) -> Result<Request<B>, Response> {
+    async fn handle_request<B>(req: Request<B>, State(state):State<Arc<AppState>>) -> Result<Request<B>, Response> 
+    where 
+        B:Send
+    {
         // TODO
         Ok(req)
     }
