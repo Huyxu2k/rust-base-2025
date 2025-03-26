@@ -36,7 +36,7 @@ impl UserHandler {
         Ok(Json(user_id))
     }
 
-    pub async fn create_user(Json(use_req): Json<CreateUserRequest>,user_service: State<Arc<dyn UserService>>)->Result<Json<User>,ApiError>{
+    pub async fn create_user(user_service: State<Arc<dyn UserService>>,Json(use_req): Json<CreateUserRequest>)->Result<Json<User>,ApiError>{
         let user=user_service.create(use_req,0).await?;
 
         Ok(Json(user))
@@ -48,6 +48,6 @@ impl UserHandler {
 pub fn user_router(state: State<Arc<AppState>>)->Router{
     Router::new()
              .route("/{id}", get(UserHandler::get_user_by_id).delete(UserHandler::delete_user_by_id))
-             .route("/",get(UserHandler::get_users))
+             .route("/",get(UserHandler::get_users).post(UserHandler::create_user))
              .with_state(state.user_container.user_service.clone())
  }

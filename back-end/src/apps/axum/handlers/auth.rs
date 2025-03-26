@@ -21,7 +21,7 @@ pub struct LoginResponse{
 pub struct AuthHandler;
 
 impl AuthHandler {
-    async fn login(Json(data):Json<LoginRequest>,service: State<Arc<dyn AuthService>>)->Result<Json<LoginResponse>,ApiError>{
+    pub async fn login(service: State<Arc<dyn AuthService>>,Json(data):Json<LoginRequest>)->Result<Json<LoginResponse>,ApiError>{
         let (user,token)= service.login(&data.email_or_username,&data.password).await?;
         let rep= LoginResponse{ user, token};
 
