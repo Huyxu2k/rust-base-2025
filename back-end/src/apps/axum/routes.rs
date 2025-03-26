@@ -2,11 +2,11 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::extract::State;
-use axum::routing::{delete,get,post,put};
+use axum::routing::{get,post};
 use axum::Router;
 use tower::ServiceBuilder;
 
-use super::handlers::auth::auth_router;
+use super::handlers::auth::AuthHandler;
 use super::handlers::users::user_router;
 use super::middlewares::layer::{health_check, AccessTokenLayer, AuthorizationLayer, LoggingLayer, RefreshTokenLayer };
 use super::middlewares::TLayer;
@@ -39,17 +39,14 @@ fn app_routes(state: State<Arc<AppState>>)->Router{
     // các route của các module
     let module_routes = Router::new()
                         .nest("/user", user_router(state.clone()));
-                        //.route("/products", method_router);
-
-    let auth_routes = Router::new()
-            .nest("/auth",auth_router(state.clone()));
-                    
+                        //.route("/products", method_router);              
 
 
     Router::new()
     .route("/health_check",get(health_check) )
     //k phải qua layer nào , nhằm yêu cầu server tạo token và refresh token khi đăng nhập lần đầu
-    .nest("/api/v1/",auth_routes)
+    .route("/api/v1/login",post(AuthHandler::login))
+    .with_state(state.user_container.auth_service.clone())
     //phải qua 1 layer kiểm tra xem refesh token có đúng không?
     //- không đúng trả ra lỗi 401 (yêu cầu đăng nhập lại)
     //- đúng thì cấp access token mới
@@ -81,5 +78,4 @@ pub async fn start(config: Config){
     )
     .await
     .unwrap();
-
 }

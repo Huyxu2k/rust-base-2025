@@ -28,10 +28,3 @@ impl AuthHandler {
         Ok(Json(rep))
     }
 }
-
-pub fn auth_router(state: State<Arc<AppState>>)->Router{
-    Router::new()
-             .route("/login",post(AuthHandler::login))
-             //.route("/logout", method_router)
-             .with_state(state.user_container.auth_service.clone())
- }

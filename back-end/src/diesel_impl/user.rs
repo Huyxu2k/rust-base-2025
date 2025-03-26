@@ -4,7 +4,6 @@ use super::schema::_users;
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, PooledConnection};
 use tokio::task;
 
 #[derive(Queryable, Selectable, Debug)]
@@ -74,12 +73,13 @@ pub struct NewUser {
     pub UpdatedAt: Option<chrono::NaiveDateTime>,
 }
 
-use super::db_pool::DbConn;
+use super::db_pool::{self, DbConn};
 use super::schema::_users::dsl::*;
 use crate::modules::user::repository::UserRepo;
 use crate::modules::user::repository::{
     CreateUserRequest, FilterUsersRequest, UpdateUserRequest, User,
 };
+use crate::modules::RepoError;
 
 pub struct UserDieselImpl {
     pool: Arc<DbConn>,
@@ -101,65 +101,65 @@ impl UserDieselImpl {
 
 #[async_trait]
 impl UserRepo for UserDieselImpl {
-    async fn get(&self, filter: FilterUsersRequest) -> Result<Vec<User>, String> {
+    async fn get(&self, filter: FilterUsersRequest) -> Result<Vec<User>, RepoError> {
         let pool = self.pool.clone();
-        task::spawn_blocking(move || {
+        db_pool::run(move || {
             let mut conn = pool
                 .get()
-                .map_err(|e| format!("Database connection error: {}", e))?;
+                .map_err(|e| RepoError::from(e))?;
 
             let result = _users::table
                 .limit(filter.pagination.limit as i64)
                 .offset(filter.pagination.offset as i64)
                 .load::<UserDiesel>(&mut conn)
-                .map_err(|e| e.to_string());
+                .map_err(|e| RepoError::from(e));
 
             result.map(|users| users.into_iter().map(|v| v.into()).collect())
         })
         .await
-        .map_err(|e| format!("Task join error: {}", e))?
+        .map_err(|e| RepoError::from(e))?
     }
-    async fn get_by_id(&self, user_id: i32) -> Result<User, String> {
+    async fn get_by_id(&self, user_id: i32) -> Result<User, RepoError> {
         let pool = self.pool.clone();
-        task::spawn_blocking(move || {
+        db_pool::run(move || {
             let mut conn = pool
                 .get()
-                .map_err(|e| format!("Database connection error: {}", e))?;
+                .map_err(|e| RepoError::from(e))?;
 
             let result = _users
                 .find(user_id)
                 .first::<UserDiesel>(&mut conn)
-                .map_err(|e| e.to_string());
+                .map_err(|e| RepoError::from(e));
 
             result.map(|user| user.into())
         })
         .await
-        .map_err(|e| format!("Task join error: {}", e))?
+        .map_err(|e| RepoError::from(e))?
     }
-    async fn get_by_email_or_username(&self, email_or_username: String) -> Result<User, String> {
+    async fn get_by_email_or_username(&self, email_or_username: String) -> Result<User, RepoError> {
         let pool = self.pool.clone();
-        task::spawn_blocking(move || {
+        db_pool::run(move || {
             let mut conn = pool
                 .get()
-                .map_err(|e| format!("Database connection error: {}", e))?;
+                .map_err(|e| RepoError::from(e))?;
 
             let result = _users::table
                 .filter(_users::Username.eq(email_or_username.clone()))
                 .or_filter(_users::Email.eq(email_or_username))
                 .first::<UserDiesel>(&mut conn)
-                .map_err(|e| e.to_string());
+                .map_err(|e| RepoError::from(e));
 
             result.map(|user| user.into())
         })
         .await
-        .map_err(|e| format!("Task join error: {}", e))?
+        .map_err(|e| RepoError::from(e))?
     }
-    async fn create(&self, user: CreateUserRequest, user_id: i32) -> Result<User, String> {
+    async fn create(&self, user: CreateUserRequest, user_id: i32) -> Result<User, RepoError> {
         let pool = self.pool.clone();
-        let inserted_id = task::spawn_blocking(move || {
+        let inserted_id = db_pool::run(move || {
             let mut conn = pool
                 .get()
-                .map_err(|e| format!("Database connection error: {}", e))?;
+                .map_err(|e| RepoError::from(e))?;
 
             let new_user = NewUser {
                 EmployeeId: None,
@@ -177,85 +177,85 @@ impl UserRepo for UserDieselImpl {
             let result = diesel::insert_into(_users)
                 .values(&new_user)
                 .execute(&mut conn)
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| RepoError::from(e))?;
             if result == 0 {
-                return Err("Can't inserted".to_string());
+                return Err(RepoError{message:"Can't inserted".to_string()});
             }
             let id = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>(
                 "LAST_INSERT_ID()",
             ))
             .get_result::<i32>(&mut conn)
-            .map_err(|e| e.to_string());
+            .map_err(|e| RepoError::from(e));
 
             id
         })
         .await
-        .map_err(|e| format!("Task join error: {}", e))??;
+        .map_err(|e| RepoError::from(e))??;
 
-        self.get_by_id(inserted_id).await.map_err(|e| e.to_string())
+        self.get_by_id(inserted_id).await.map_err(|e| RepoError::from(e))
     }
-    async fn update(&self, user_id:i32, user: UpdateUserRequest, by_id: i32) -> Result<User, String> {
+    async fn update(&self, user_id:i32, user: UpdateUserRequest, by_id: i32) -> Result<User, RepoError> {
         let pool = self.pool.clone();
-        task::spawn_blocking(move || {
+        db_pool::run(move || {
             let mut conn = pool
                 .get()
-                .map_err(|e| format!("Database connection error: {}", e))?;
+                .map_err(|e| RepoError::from(e))?;
 
             let result = diesel::update(_users.find(user_id))
                 .set(Username.eq(user.user_name))
                 .execute(&mut conn)
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| RepoError::from(e))?;
 
             if result == 0 {
-                return Err("Can't updated".to_string());
+                return Err(RepoError{message:"Can't updated".to_string()});
             }
             let user_update = _users
                 .find(user_id)
                 .first::<UserDiesel>(&mut conn)
-                .map_err(|e| e.to_string());
+                .map_err(|e| RepoError::from(e))?;
 
-            user_update.map(|user| user.into())
+            Ok(user_update.into())
         })
         .await
-        .map_err(|e| format!("Task join error: {}", e))?
+        .map_err(|e| RepoError::from(e))?
     }
-    async fn delete_by_id(&self, user_id: i32) -> Result<i32, String> {
+    async fn delete_by_id(&self, user_id: i32) -> Result<i32, RepoError> {
         let pool = self.pool.clone();
-        task::spawn_blocking(move || {
+        db_pool::run(move || {
             let mut conn = pool
                 .get()
-                .map_err(|e| format!("Database connection error: {}", e))?;
+                .map_err(|e| RepoError::from(e))?;
 
             let result = diesel::update(_users.find(user_id.clone()))
                 .set(IsActive.eq(false))
                 .execute(&mut conn)
-                .map_err(|e|e.to_string())?;
+                .map_err(|e| RepoError::from(e))?;
 
             if result==0{
-                return Err("Can't Delete".to_string());
+                return Err(RepoError{message:"Can't Delete".to_string()});
             }
             Ok(user_id)
         })
         .await
-        .map_err(|e| format!("Task join error: {}", e))?
+        .map_err(|e| RepoError::from(e))?
     }
-    async fn delete_list_ids(&self, user_ids: Vec<i32>) -> Result<Vec<i32>, String> {
+    async fn delete_list_ids(&self, user_ids: Vec<i32>) -> Result<Vec<i32>, RepoError> {
         let pool = self.pool.clone();
-        task::spawn_blocking(move || {
+        db_pool::run(move || {
             let mut conn = pool
                 .get()
-                .map_err(|e| format!("Database connection error: {}", e))?;
+                .map_err(|e| RepoError::from(e))?;
 
             for id in user_ids.clone(){
                  diesel::update(_users.find(id))
                 .set(IsActive.eq(false))
                 .execute(&mut conn)
-                .map_err(|e|e.to_string())?;
+                .map_err(|e| RepoError::from(e))?;
             }
 
             Ok(user_ids)
         })
         .await
-        .map_err(|e| format!("Task join error: {}", e))?
+        .map_err(|e| RepoError::from(e))?
     }
 }

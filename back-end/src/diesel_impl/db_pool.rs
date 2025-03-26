@@ -1,4 +1,5 @@
 use diesel::r2d2::{self, ConnectionManager, PooledConnection};
+use tokio::task;
 
 use crate::config::MysqlConfig;
 
@@ -22,3 +23,11 @@ pub fn db_pool(config:MysqlConfig)->DbConn{
 }
 
 
+pub async fn run<F,R>(f: F)-> Result<R, tokio::task::JoinError>
+where F: FnOnce() -> R + Send + 'static,
+      R: Send + 'static
+{
+    task::spawn_blocking(f).await
+}
+
+pub type AsyncPoolError= tokio::task::JoinError;

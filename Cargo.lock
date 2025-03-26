@@ -165,6 +165,7 @@ dependencies = [
  "hex",
  "jsonwebtoken",
  "lazy_static",
+ "r2d2",
  "redis",
  "serde",
  "serde_json",
