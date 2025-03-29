@@ -38,12 +38,13 @@ fn app_routes(state: State<Arc<AppState>>)->Router{
     
     // các route của các module
     let module_routes = Router::new()
-                        .nest("/user", user_router(state.clone()));
+                        .nest("/users", user_router(state.clone()));
                         //.route("/products", method_router);              
 
 
     Router::new()
     .route("/health_check",get(health_check) )
+    .layer(level_2)
     //k phải qua layer nào , nhằm yêu cầu server tạo token và refresh token khi đăng nhập lần đầu
     .route("/api/v1/login",post(AuthHandler::login))
     .with_state(state.user_container.auth_service.clone())

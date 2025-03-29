@@ -35,14 +35,14 @@ impl THandler for AccessTokenLayer {
         if let Some(auth_header) = headers.get(AUTHORIZATION_HEADER) {
             let header = match auth_header.to_str() {
                 Ok(h) => h,
-                Err(_) => return Err(response), // Trả về lỗi nếu không thể parse header
+                Err(_) => return Err(response),
             };
 
             if header.starts_with(BEARER) {
                 if let Ok(is_valid) = state
                     .user_container
                     .security_service
-                    .verify_token(TypeToken::Access, header.to_string()).await
+                    .verify_token(TypeToken::Access, header.trim_start_matches(BEARER).to_string()).await
                 {
                     if is_valid {
                         return Ok(req);

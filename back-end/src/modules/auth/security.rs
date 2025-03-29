@@ -69,7 +69,7 @@ impl SecurityService for SecurityServiceImpl {
         match token_type {
             TypeToken::Access => {
                 let decode_claim = self.decode_token(TypeToken::Access,&token).await.map_err(|e| e.into())?;
-                if decode_claim.claims.exp <= chrono::Utc::now().timestamp() {
+                if decode_claim.claims.exp >= chrono::Utc::now().timestamp() {
                     Ok(true)
                 } else {
                     Err(RepoError{message: "Access token is expired!".to_string()}.into())
@@ -77,7 +77,7 @@ impl SecurityService for SecurityServiceImpl {
             }
             TypeToken::Refresh => {
                 let decode_claim =self.decode_token(TypeToken::Refresh,&token).await.map_err(|e| e.into())?;
-                if decode_claim.claims.exp <= chrono::Utc::now().timestamp() {
+                if decode_claim.claims.exp >= chrono::Utc::now().timestamp() {
                     Ok(true)
                 } else {
                     Err(RepoError{message: "Refresh token is expired!".to_string()}.into())
